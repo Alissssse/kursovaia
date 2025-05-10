@@ -1,0 +1,152 @@
+/* Общие стили */
+:root {
+    --primary: #f4623a;
+    --secondary: #6c757d;
+    --light: #f8f9fa;
+    --dark: #212529;
+}
+
+body {
+    font-family: 'Merriweather', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: var(--dark);
+    padding-top: 80px;
+}
+
+/* Навигация */
+#mainNav {
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.navbar-brand {
+    font-family: 'Merriweather Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    color: var(--primary) !important;
+}
+
+.nav-link {
+    font-weight: 700;
+    color: var(--dark) !important;
+}
+
+.nav-link:hover {
+    color: var(--primary) !important;
+}
+
+/* Masthead */
+.masthead {
+    position: relative;
+    background-color: var(--dark);
+    background: url('../img/header-bg.jpg') no-repeat center center;
+    background-size: cover;
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+}
+
+.masthead:before {
+    content: "";
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.5);
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+}
+
+.masthead h1 {
+    font-size: 2.5rem;
+    color: white;
+}
+
+.masthead p {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* Разделитель */
+.divider {
+    height: 0.2rem;
+    max-width: 3.25rem;
+    margin: 1.5rem auto;
+    background-color: var(--primary);
+    opacity: 1;
+}
+
+/* Секции */
+.page-section {
+    padding: 8rem 0;
+}
+
+/* Карточки */
+.card {
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    font-weight: 700;
+}
+
+/* Кнопки */
+.btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background-color: #e04b2a;
+    border-color: #e04b2a;
+}
+
+/* Алерты */
+.alert {
+    border-radius: 0;
+    border: none;
+}
+
+/* Футер */
+footer {
+    background-color: var(--light);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .masthead {
+        padding-top: 6rem;
+        padding-bottom: 6rem;
+    }
+    
+    .masthead h1 {
+        font-size: 2rem;
+    }
+    
+    .page-section {
+        padding: 6rem 0;
+    }
+    body {
+        padding-top: 100px;
+    }
+}
+
+/* Стили для таблиц */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    background: #fff;
+}
+th, td {
+    padding: 8px 12px;
+    text-align: left;
+    background: #fff;
+    color: #333;
+    border-bottom: 1px solid #dee2e6;
+}
+th {
+    background: #f8f8f8;
+    color: #f4623a;
+    font-weight: bold;
+    position: static;
+    z-index: 1;
+} 

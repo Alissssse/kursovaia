@@ -1,0 +1,74 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Добавить отзыв{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Добавить отзыв к туру: "{{ tour.name }}"</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.rating.id_for_label }}" class="form-label">{{ form.rating.label }}</label>
+                            {{ form.rating }}
+                            {% if form.rating.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.rating.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.comment.id_for_label }}" class="form-label">{{ form.comment.label }}</label>
+                            {{ form.comment }}
+                            {% if form.comment.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.comment.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% url 'index' %}" class="btn btn-outline-secondary me-md-2">Отмена</a> {# Изменено на index для простоты #}
+                            <button type="submit" class="btn btn-primary">Отправить отзыв</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if similar_tours %}
+                <div class="mt-5">
+                    <h5 class="mb-3"><i class="bi bi-bicycle me-2"></i>Похожие туры (такая же длительность):</h5>
+                    <div class="list-group shadow-sm">
+                        {% for s_tour in similar_tours %}
+                            <a href="{% url 'tour_edit' s_tour.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                {{ s_tour.name }}
+                                <span class="badge bg-info rounded-pill">{{ s_tour.get_duration_display }}</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if user.is_authenticated and user_no_review_tours %}
+                <div class="mt-4">
+                    <h5 class="mb-3"><i class="bi bi-chat-square-text me-2"></i>Другие туры для вашего отзыва:</h5>
+                    <div class="list-group shadow-sm">
+                        {% for unr_tour in user_no_review_tours %}
+                            <a href="{% url 'tour_edit' unr_tour.id %}" class="list-group-item list-group-item-action">
+                                {{ unr_tour.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

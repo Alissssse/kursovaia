@@ -1,0 +1,27 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Удаление аккаунта{% endblock %}
+
+{% block content %}
+<!-- лаба 1: Демонстрация использования return redirect -->
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Удаление аккаунта</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-danger">Внимание! Это действие нельзя отменить. Все ваши данные будут удалены.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Введите пароль для подтверждения</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Удалить аккаунт</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

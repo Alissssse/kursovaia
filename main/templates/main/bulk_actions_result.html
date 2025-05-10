@@ -1,0 +1,97 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Результаты массовых операций{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Результаты массовых операций</h1>
+    
+    <div class="row">
+        <!-- update() для старых туров -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="card-title mb-0">Деактивация старых туров</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        {% if old_tours_count > 0 %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            Деактивировано {{ old_tours_count }} туров старше 30 дней
+                        {% else %}
+                            <i class="bi bi-info-circle text-muted"></i>
+                            Нет туров старше 30 дней
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- update() для коротких туров -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info">
+                    <h5 class="card-title mb-0">Обновление цен коротких туров</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        {% if short_tours_updated > 0 %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            Обновлены цены для {{ short_tours_updated }} коротких туров
+                        {% else %}
+                            <i class="bi bi-info-circle text-muted"></i>
+                            Нет коротких туров для обновления
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- delete() для неактивных туров -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">Удаление неактивных туров</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        {% if deleted_tours > 0 %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            Удалено {{ deleted_tours }} неактивных туров без отзывов
+                        {% else %}
+                            <i class="bi bi-info-circle text-muted"></i>
+                            Нет туров для удаления
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- update() для московских туров -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Обновление московских туров</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        {% if moscow_tours_updated > 0 %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            Обновлено описание для {{ moscow_tours_updated }} московских туров
+                        {% else %}
+                            <i class="bi bi-info-circle text-muted"></i>
+                            Нет московских туров для обновления
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{% url 'tour_list' %}" class="btn btn-primary">
+            <i class="bi bi-arrow-left me-1"></i>Вернуться к списку туров
+        </a>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,25 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Список аренд{% endblock %}
+
+{% block content %}
+<h2>Список аренд</h2>
+<table class="table">
+    <tr>
+        <th>Пользователь</th>
+        <th>Велосипед</th>
+        <th>Время начала</th>
+        <th>Время окончания</th>
+        <th>Общая стоимость</th>
+    </tr>
+    {% for rental in rentals %}
+    <tr>
+        <td>{{ rental.user.username }}</td>
+        <td>{{ rental.bike }}</td>
+        <td>{{ rental.start_time }}</td>
+        <td>{{ rental.end_time }}</td>
+        <td>{{ rental.total_price }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %} 

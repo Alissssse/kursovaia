@@ -1,0 +1,9 @@
+{% if current_user.is_authenticated %}
+    <div class="alert alert-success">
+        <p>Привет, {{ current_user.username }}! Рады видеть вас снова!</p>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <p>Здравствуйте, Гость! Войдите или зарегистрируйтесь для полного доступа.</p>
+    </div>
+{% endif %} 

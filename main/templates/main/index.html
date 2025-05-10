@@ -1,0 +1,228 @@
+{% extends 'main/base.html' %}
+{% load static %}
+{% load contextual_tags %}
+
+{% block title %}Главная - Велосипедные туры{% endblock %}
+
+{% block content %}
+    <div class="container px-4 px-lg-5">
+        <div class="row gx-4 gx-lg-5 h-100 align-items-center justify-content-center text-center">
+            <div class="col-lg-8 align-self-end">
+                <h1 class="text-white font-weight-bold">Велосипедные туры по Москве</h1>
+                <hr class="divider" />
+            </div>
+            <div class="col-lg-8 align-self-baseline">
+                <p class="text-white-75 mb-5">Исследуйте Москву на велосипеде вместе с нами! Индивидуальные и групповые туры для всех уровней подготовки.</p>
+                <a class="btn btn-primary btn-xl" href="{% url 'tour_list' %}">Найти тур</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика (использование count) -->
+    <section class="page-section bg-light">
+        <div class="container">
+            <h2 class="text-center mb-4">Статистика нашего сервиса</h2>
+            <div class="row text-center">
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h3 class="card-title display-4 text-primary">{{ total_tours_count }}</h3>
+                            <p class="card-text text-muted">Всего туров</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h3 class="card-title display-4 text-success">{{ active_tours_count }}</h3>
+                            <p class="card-text text-muted">Активных туров</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h3 class="card-title display-4 text-info">{{ total_guides_count }}</h3>
+                            <p class="card-text text-muted">Гидов</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h3 class="card-title display-4 text-warning">{{ total_reviews_count }}</h3>
+                            <p class="card-text text-muted">Отзывов</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Популярные туры -->
+    <section class="mt-5">
+        <div class="container">
+            <h2 class="text-center mb-4">Популярные туры</h2>
+            
+            <div class="row">
+                {% top_tours as popular_tours %}
+                
+                {% if popular_tours %}
+                    {% for tour in popular_tours %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                {% if tour.image %}
+                                    <img src="{{ tour.image.url }}" class="card-img-top" alt="{{ tour.title }}">
+                                {% else %}
+                                    <img src="{% static 'images/default-tour.jpg' %}" class="card-img-top" alt="Тур без изображения">
+                                {% endif %}
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ tour.title }}</h5>
+                                    <p class="card-text text-muted">{{ tour.price }} ₽</p>
+                                    <a href="{% url 'tour_edit' tour.id %}" class="btn btn-primary">Подробнее</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12 text-center">
+                        <p>Нет доступных туров</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Services-->
+    <section class="page-section" id="services">
+        <div class="container px-4 px-lg-5">
+            <h2 class="text-center mt-0">Что мы предлагаем</h2>
+            <hr class="divider" />
+            <div class="row gx-4 gx-lg-5">
+                <div class="col-lg-3 col-md-6 text-center">
+                    <div class="mt-5">
+                        <div class="mb-2"><i class="bi-bicycle fs-1 text-primary"></i></div>
+                        <h3 class="h4 mb-2">Надежные маршруты</h3>
+                        <p class="text-muted mb-0">Маршруты актуализируются и дополняются для вашего удобства.</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 text-center">
+                    <div class="mt-5">
+                        <div class="mb-2"><i class="bi-map fs-1 text-primary"></i></div>
+                        <h3 class="h4 mb-2">Актуальная информация</h3>
+                        <p class="text-muted mb-0">Мы следим за обновлениями и предлагаем только лучшие маршруты.</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 text-center">
+                    <div class="mt-5">
+                        <div class="mb-2"><i class="bi-people fs-1 text-primary"></i></div>
+                        <h3 class="h4 mb-2">Опытные гиды</h3>
+                        <p class="text-muted mb-0">Профессиональные гиды помогут вам в путешествии.</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 text-center">
+                    <div class="mt-5">
+                        <div class="mb-2"><i class="bi-heart fs-1 text-primary"></i></div>
+                        <h3 class="h4 mb-2">Создано с любовью</h3>
+                        <p class="text-muted mb-0">Каждый маршрут тщательно подобран для комфортной поездки</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Portfolio-->
+    <section class="page-section bg-light" id="portfolio">
+        <div class="container px-4 px-lg-5">
+            <h2 class="text-center mt-0">Наши предложения</h2>
+            <hr class="divider" />
+            <div class="row gx-4 gx-lg-5">
+                <!-- Лучшие гиды -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow">
+                        <div class="card-header bg-success text-white">
+                            <a href="{% url 'tour_guides_list' %}" class="text-white text-decoration-none">Лучшие гиды</a>
+                        </div>
+                        <div class="card-body">
+                            {% for guide in best_guides %}
+                                <div class="mb-3">
+                                    <h5 class="card-title">
+                                        <a href="#" class="text-decoration-none">{{ guide.user.username }}</a>
+                                    </h5>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="bi-star-fill text-warning"></i> Рейтинг: {{ guide.rating }}<br>
+                                            <i class="bi-clock-history"></i> Опыт: {{ guide.experience }} лет<br>
+                                            <i class="bi-bicycle"></i> Туров: {{ guide.tours.count }}
+                                        </small>
+                                    </p>
+                                </div>
+                                {% if not forloop.last %}<hr>{% endif %}
+                            {% empty %}
+                                <p class="card-text text-muted">Нет доступных гидов</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <!-- Последние бронирования -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow">
+                        <div class="card-header bg-info text-white">
+                            <a href="{% url 'rental_list' %}" class="text-white text-decoration-none">Последние бронирования</a>
+                        </div>
+                        <div class="card-body">
+                            {% for booking in latest_bookings %}
+                                <div class="mb-3">
+                                    <h5 class="card-title">
+                                        <a href="{% url 'tour_edit' booking.tour.pk %}" class="text-decoration-none">{{ booking.tour.name }}</a>
+                                    </h5>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="bi-person"></i> {{ booking.user.username }}<br>
+                                            <i class="bi-calendar"></i> {{ booking.date|date:'d.m.Y H:i' }}<br>
+                                            <i class="bi-currency-ruble"></i> {{ booking.total_price }} руб.
+                                        </small>
+                                    </p>
+                                </div>
+                                {% if not forloop.last %}<hr>{% endif %}
+                            {% empty %}
+                                <p class="card-text text-muted">Нет последних бронирований</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action-->
+    <section class="page-section bg-dark text-white">
+        <div class="container px-4 px-lg-5 text-center">
+            <h2 class="mb-4">Готовы начать путешествие?</h2>
+            <a class="btn btn-light btn-xl" href="{% url 'tour_list' %}">Выбрать маршрут</a>
+        </div>
+    </section>
+
+    <!-- Contact-->
+    <section class="page-section" id="contact">
+        <div class="container px-4 px-lg-5">
+            <div class="row gx-4 gx-lg-5 justify-content-center">
+                <div class="col-lg-8 col-xl-6 text-center">
+                    <h2 class="mt-0">Свяжитесь с нами</h2>
+                    <hr class="divider" />
+                    <p class="text-muted mb-5">Есть вопросы? Напишите нам, и мы с радостью ответим!</p>
+                </div>
+            </div>
+            <div class="row gx-4 gx-lg-5 justify-content-center">
+                <div class="col-lg-4 text-center mb-5 mb-lg-0">
+                    <i class="bi-phone fs-2 mb-3 text-muted"></i>
+                    <div>+7 (999) 123-45-67</div>
+                </div>
+                <div class="col-lg-4 text-center mb-5 mb-lg-0">
+                    <i class="bi-envelope fs-2 mb-3 text-muted"></i>
+                    <div><a href="mailto:info@velomoscow.ru" class="text-decoration-none">info@velomoscow.ru</a></div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %} 

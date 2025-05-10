@@ -1,0 +1,31 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Гиды по турам{% endblock %}
+
+{% block content %}
+<h2>Гиды по турам</h2>
+<table class="table">
+    <tr>
+        <th>Маршрут</th>
+        <th>Гиды</th>
+    </tr>
+    {% for tour in tours %}
+    <tr>
+        <td>{{ tour.name }}</td>
+        <td>
+            {% if tour.guides.all %}
+                <ul>
+                {% for guide in tour.guides.all %}
+                    <li>{{ guide.user.username }}</li>
+                {% empty %}
+                    <li>Нет гидов</li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                Нет гидов
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %} 

@@ -1,0 +1,59 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Вход в аккаунт{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-success text-white">
+                    <h2 class="text-center mb-0">Вход <i class="bi bi-box-arrow-in-right ms-2"></i></h2>
+                </div>
+                <div class="card-body p-4">
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                <p class="mb-0">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    <form method="post" action="{% url 'login' %}">
+                        {% csrf_token %}
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                <input type="{{ field.field.widget.input_type }}" 
+                                       name="{{ field.name }}" 
+                                       id="{{ field.id_for_label }}" 
+                                       class="form-control {% if field.errors %}is-invalid{% endif %}" 
+                                       placeholder="{{ field.label }}" 
+                                       value="{{ field.value|default_if_none:'' }}">
+                                {% if field.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in field.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        <button type="submit" class="btn btn-success w-100 mt-4 btn-lg">Войти</button>
+                    </form>
+                </div>
+                <div class="card-footer text-center py-3">
+                    <p class="mb-0">Еще нет аккаунта? <a href="{% url 'register' %}" class="fw-bold">Зарегистрироваться</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

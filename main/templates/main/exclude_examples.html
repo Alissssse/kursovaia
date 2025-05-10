@@ -1,0 +1,148 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Примеры использования метода exclude(){% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Примеры использования метода exclude()</h1>
+    
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">1. Базовый exclude с одним условием</h5>
+                </div>
+                <div class="card-body">
+                    <p><code>Tour.objects.exclude(location__icontains='Москва')</code></p>
+                    <h6>Туры не из Москвы:</h6>
+                    <ul class="list-group">
+                        {% for tour in non_moscow_tours %}
+                            <li class="list-group-item">{{ tour.name }} - {{ tour.location }}</li>
+                        {% empty %}
+                            <li class="list-group-item">Нет туров</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">2. Exclude с несколькими условиями (цепочка вызовов)</h5>
+                </div>
+                <div class="card-body">
+                    <p><code>Tour.objects.exclude(location__icontains='Москва').exclude(location__icontains='Санкт-Петербург')</code></p>
+                    <h6>Туры не из Москвы и не из Санкт-Петербурга:</h6>
+                    <ul class="list-group">
+                        {% for tour in non_msk_spb_tours %}
+                            <li class="list-group-item">{{ tour.name }} - {{ tour.location }}</li>
+                        {% empty %}
+                            <li class="list-group-item">Нет туров</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">3. Exclude с Q-объектами</h5>
+                </div>
+                <div class="card-body">
+                    <p><code>Tour.objects.exclude(Q(duration__lte=3) | Q(price__gt=5000))</code></p>
+                    <h6>Туры, которые не являются ни короткими (до 3 часов), ни дорогими (>5000):</h6>
+                    <ul class="list-group">
+                        {% for tour in medium_tours %}
+                            <li class="list-group-item">{{ tour.name }} - {{ tour.get_duration_display }} - {{ tour.price }} руб.</li>
+                        {% empty %}
+                            <li class="list-group-item">Нет туров</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">4. Exclude для связанных моделей</h5>
+                </div>
+                <div class="card-body">
+                    <p><code>Tour.objects.exclude(reviews__rating__gt=4).distinct()</code></p>
+                    <h6>Туры без отзывов с высоким рейтингом (>4):</h6>
+                    <ul class="list-group">
+                        {% for tour in tours_without_high_ratings %}
+                            <li class="list-group-item">{{ tour.name }}</li>
+                        {% empty %}
+                            <li class="list-group-item">Нет туров</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">5. Exclude с вложенными запросами (subqueries)</h5>
+                </div>
+                <div class="card-body">
+                    <p><code>Tour.objects.exclude(id__in=Subquery(recent_bookings.values('tour_id')))</code></p>
+                    <h6>Туры, не забронированные в последний месяц:</h6>
+                    <ul class="list-group">
+                        {% for tour in non_recent_booked_tours %}
+                            <li class="list-group-item">{{ tour.name }}</li>
+                        {% empty %}
+                            <li class="list-group-item">Нет туров</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">6. Exclude с агрегацией</h5>
+                </div>
+                <div class="card-body">
+                    <p><code>Tour.objects.annotate(review_count=Count('reviews')).exclude(review_count__lt=3)</code></p>
+                    <h6>Туры с 3 или более отзывами:</h6>
+                    <ul class="list-group">
+                        {% for tour in popular_tours %}
+                            <li class="list-group-item">{{ tour.name }}</li>
+                        {% empty %}
+                            <li class="list-group-item">Нет туров</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">7. Exclude с диапазоном дат</h5>
+                </div>
+                <div class="card-body">
+                    <p><code>Tour.objects.exclude(created_at__gte=week_ago)</code></p>
+                    <h6>Туры, не созданные в последние 7 дней:</h6>
+                    <ul class="list-group">
+                        {% for tour in older_tours %}
+                            <li class="list-group-item">{{ tour.name }} - создан {{ tour.created_at|date:"d.m.Y" }}</li>
+                        {% empty %}
+                            <li class="list-group-item">Нет туров</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4 mb-5">
+        <a href="{% url 'tour_list' %}" class="btn btn-primary">Вернуться к списку туров</a>
+    </div>
+</div>
+{% endblock %} 
