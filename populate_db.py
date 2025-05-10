@@ -2,7 +2,7 @@
 import os
 import random
 from datetime import datetime, timedelta
-from django.utils.timezone import make_aware
+from django.utils.timezone import make_aware, is_aware
 import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
@@ -95,7 +95,8 @@ def create_users(num=20):
         if role == 'Гид':
             Guide.objects.create(
                 user=user,
-                experience=random.choice(EXPERIENCES),
+                experience=random.randint(1, 20),
+                resume=random.choice(EXPERIENCES),
                 languages=', '.join(random.sample(LANGUAGES, random.randint(1, 3))),
                 rating=round(random.uniform(3.5, 5.0), 1)
             )
@@ -143,12 +144,13 @@ def create_tours(num=15):
     
     for i in range(num):
         duration = random.choice([1, 2, 3, 4, 6, 8])
+        loc = random.choice(locations)
         Tour.objects.create(
             name=f"{random.choice(TOUR_NAMES)} {i+1}",
             description=random.choice(TOUR_DESCRIPTIONS),
             duration=duration,
             price=round(duration * random.uniform(10, 25), 2),
-            location=random.choice(locations)
+            location=loc.name
         )
 
 def assign_guides_to_tours():
@@ -209,15 +211,23 @@ def create_bookings(num=40):
 
 def create_reviews(num=30):
     """Создание отзывов"""
+    users = list(User.objects.filter(role='Пользователь'))
     bookings = list(Booking.objects.all())
-    
-    for booking in random.sample(bookings, min(num, len(bookings))):
+    for _ in range(num):
+        booking = random.choice(bookings)
+        user = booking.user
+        tour = booking.tour
+        rating = random.randint(3, 5)
+        comment = random.choice(COMMENTS)
+        created_at = booking.date + timedelta(days=random.randint(1, 7))
+        if not is_aware(created_at):
+            created_at = make_aware(created_at)
         Review.objects.create(
-            user=booking.user,
-            tour=booking.tour,
-            rating=random.randint(1, 5),
-            comment=random.choice(COMMENTS),
-            created_at=make_aware(booking.date + timedelta(days=random.randint(1, 7)))
+            user=user,
+            tour=tour,
+            rating=rating,
+            comment=comment,
+            created_at=created_at
         )
 
 def create_payments(num=60):

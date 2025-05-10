@@ -1,8 +1,20 @@
 # models.py (main/models.py)
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group, Permission
+from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from django.db.models import Avg
+
+def create_manager_group():
+    """Создает группу менеджеров и назначает ей необходимые права"""
+    manager_group, created = Group.objects.get_or_create(name='Managers')
+    
+    # Получаем права для модели Tour
+    tour_content_type = ContentType.objects.get_for_model(Tour)
+    tour_permissions = Permission.objects.filter(content_type=tour_content_type)
+    
+    # Добавляем права менеджерам
+    manager_group.permissions.add(*tour_permissions)
 
 class User(AbstractUser):
     GENDER_CHOICES = (

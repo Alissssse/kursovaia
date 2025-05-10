@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib import messages
-from .models import Tour, Review, Rental, Guide, Booking, User
+from .models import Tour, Review, Rental, Guide, Booking, User, create_manager_group
 from .forms import TourForm, ReviewForm, UserProfileForm, CustomUserCreationForm
 from django.db.models import Count, Avg, Q, F
 from django.contrib.auth.decorators import login_required
@@ -11,6 +11,16 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.forms import UserCreationForm
 from django.utils import timezone
 from django.db.models import Subquery
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
+
+class ManagerRequiredMixin(UserPassesTestMixin):
+    """Миксин для проверки прав менеджера"""
+    def test_func(self):
+        return self.request.user.groups.filter(name='Managers').exists()
+
+    def handle_no_permission(self):
+        raise PermissionDenied("У вас нет прав для выполнения этого действия")
 
 def index(request):
     # Популярные туры: по количеству отзывов (top 5)
@@ -83,152 +93,132 @@ class TourListView(ListView):
     model = Tour
     template_name = 'main/tour_list.html'
     context_object_name = 'tours'
-    paginate_by = 6  # Количество туров на странице
-    
+    paginate_by = 9
+
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = Tour.objects.all()
         
-        # Получаем параметры фильтрации из GET-запроса
-        location = self.request.GET.get('location')
-        min_price = self.request.GET.get('min_price')
-        max_price = self.request.GET.get('max_price')
-        duration = self.request.GET.get('duration')
-        search_query = self.request.GET.get('search')
-        created_after = self.request.GET.get('created_after')
-        created_before = self.request.GET.get('created_before')
-        rating = self.request.GET.get('rating')
-        exclude_duration = self.request.GET.get('exclude_duration')
-        hide_expensive = self.request.GET.get('hide_expensive')
-        exclude_location = self.request.GET.get('exclude_location')
-        highly_rated = self.request.GET.get('highly_rated')
+        # Получаем все параметры фильтрации
+        search = self.request.GET.get('search', '')
+        location = self.request.GET.get('location', '')
+        min_price = self.request.GET.get('min_price', '')
+        max_price = self.request.GET.get('max_price', '')
+        duration = self.request.GET.get('duration', '')
+        created_after = self.request.GET.get('created_after', '')
+        created_before = self.request.GET.get('created_before', '')
+        rating = self.request.GET.get('rating', '')
+        name_starts_with = self.request.GET.get('name_starts_with', '')
+        popular_durations = self.request.GET.getlist('popular_durations', [])
+        hide_expensive = self.request.GET.get('hide_expensive', '')
+        hide_without_reviews = self.request.GET.get('hide_without_reviews', '')
+        hide_new = self.request.GET.get('hide_new', '')
+        highly_rated = self.request.GET.get('highly_rated', '')
+        exclude_duration = self.request.GET.get('exclude_duration', '')
+        exclude_location = self.request.GET.get('exclude_location', '')
+
+        # Применяем фильтры
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | 
+                Q(description__icontains=search)
+            )
         
-        # Применяем фильтры, если они указаны
         if location:
-            # Пример использования __icontains (регистронезависимый поиск по подстроке)
             queryset = queryset.filter(location__icontains=location)
-            
+        
         if min_price:
-            # Пример использования __gte (greater than or equal - больше или равно)
             queryset = queryset.filter(price__gte=min_price)
-            
+        
         if max_price:
-            # Пример использования __lte (less than or equal - меньше или равно)
             queryset = queryset.filter(price__lte=max_price)
-            
+        
         if duration:
-            # Пример использования точного сравнения (без __)
             queryset = queryset.filter(duration=duration)
-            
-        if search_query:
-            # Пример использования __icontains с объединением условий через | (OR)
-            queryset = queryset.filter(name__icontains=search_query) | queryset.filter(description__icontains=search_query)
         
         if created_after:
-            # Пример использования __gte для даты
             queryset = queryset.filter(created_at__gte=created_after)
-            
+        
         if created_before:
-            # Пример использования __lte для даты
             queryset = queryset.filter(created_at__lte=created_before)
-            
+        
         if rating:
-            # Пример использования __ для связанной модели с агрегацией
-            # Фильтруем туры со средним рейтингом выше указанного
-            queryset = queryset.annotate(avg_rating=Avg('reviews__rating')).filter(avg_rating__gte=rating)
+            queryset = queryset.filter(rating__gte=rating)
         
-        # Фильтрация только высоко оцененных туров
-        if highly_rated:
-            queryset = queryset.annotate(avg_rating=Avg('reviews__rating')).filter(avg_rating__gte=4.5)
-        
-        # Пример использования __in (поиск в списке значений)
-        # Фильтрация туров только с определенной длительностью (1, 2 или 4 часа)
-        popular_durations = self.request.GET.getlist('popular_durations')
-        if popular_durations:
-            queryset = queryset.filter(duration__in=popular_durations)
-            
-        # Пример использования __startswith (начинается с)
-        name_starts_with = self.request.GET.get('name_starts_with')
         if name_starts_with:
             queryset = queryset.filter(name__istartswith=name_starts_with)
-            
-        # Пример использования __range (в диапазоне)
-        price_range = self.request.GET.getlist('price_range')
-        if len(price_range) == 2:
-            queryset = queryset.filter(price__range=(price_range[0], price_range[1]))
         
-        # Примеры использования метода exclude()
+        if popular_durations:
+            queryset = queryset.filter(duration__in=popular_durations)
         
-        # 1. Исключаем туры с определенной длительностью
+        if hide_expensive:
+            queryset = queryset.filter(price__lte=10000)
+        
+        if hide_without_reviews:
+            queryset = queryset.exclude(reviews__isnull=True)
+        
+        if hide_new:
+            seven_days_ago = timezone.now() - timezone.timedelta(days=7)
+            queryset = queryset.exclude(created_at__gte=seven_days_ago)
+        
+        if highly_rated:
+            queryset = queryset.filter(rating__gte=4.5)
+        
         if exclude_duration:
             queryset = queryset.exclude(duration=exclude_duration)
-            
-        # 2. Исключаем дорогие туры (цена > 10000)
-        if hide_expensive:
-            queryset = queryset.exclude(price__gt=10000)
         
-        # 3. Исключаем туры из определенного местоположения
         if exclude_location:
             queryset = queryset.exclude(location__icontains=exclude_location)
-        
-        # 4. Исключаем туры без отзывов
-        if self.request.GET.get('hide_without_reviews'):
-            queryset = queryset.exclude(reviews=None)
-            
-        # 5. Исключаем недавно созданные туры (за последние 7 дней)
-        if self.request.GET.get('hide_new'):
-            week_ago = timezone.now() - timezone.timedelta(days=7)
-            queryset = queryset.exclude(created_at__gte=week_ago)
-        
-        return queryset
-    
+
+        return queryset.distinct()
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Добавляем в контекст текущие параметры фильтрации для отображения в форме
+        
+        # Добавляем все текущие фильтры в контекст
         context['current_filters'] = {
+            'search': self.request.GET.get('search', ''),
             'location': self.request.GET.get('location', ''),
             'min_price': self.request.GET.get('min_price', ''),
             'max_price': self.request.GET.get('max_price', ''),
             'duration': self.request.GET.get('duration', ''),
-            'search': self.request.GET.get('search', ''),
             'created_after': self.request.GET.get('created_after', ''),
             'created_before': self.request.GET.get('created_before', ''),
             'rating': self.request.GET.get('rating', ''),
-            'popular_durations': self.request.GET.getlist('popular_durations', []),
             'name_starts_with': self.request.GET.get('name_starts_with', ''),
-            'price_range': self.request.GET.getlist('price_range', []),
-            'exclude_duration': self.request.GET.get('exclude_duration', ''),
+            'popular_durations': self.request.GET.getlist('popular_durations', []),
             'hide_expensive': self.request.GET.get('hide_expensive', ''),
-            'exclude_location': self.request.GET.get('exclude_location', ''),
             'hide_without_reviews': self.request.GET.get('hide_without_reviews', ''),
             'hide_new': self.request.GET.get('hide_new', ''),
-            'highly_rated': self.request.GET.get('highly_rated', '')
+            'highly_rated': self.request.GET.get('highly_rated', ''),
+            'exclude_duration': self.request.GET.get('exclude_duration', ''),
+            'exclude_location': self.request.GET.get('exclude_location', ''),
         }
-        # Добавляем список доступных вариантов длительности
+        
+        # Добавляем выборки для селектов
         context['duration_choices'] = Tour.DURATION_CHOICES
+        
         return context
 
-class TourCreateView(CreateView):
+class TourCreateView(LoginRequiredMixin, ManagerRequiredMixin, CreateView):
     model = Tour
     form_class = TourForm
     template_name = 'main/tour_form.html'
     success_url = reverse_lazy('tour_list')
 
     def post(self, request, *args, **kwargs):
+        self.object = None
         form = self.get_form()
         if form.is_valid():
-            # Получаем загруженный файл из request.FILES
+            tour = form.save(commit=False)
             image = request.FILES.get('image')
             if image:
-                # Создаем экземпляр модели с изображением
-                tour = form.save(commit=False)
                 tour.image = image
-                tour.save()
-            else:
-                form.save()
+            tour.save()
+            messages.success(request, 'Тур успешно создан!')
             return redirect(self.success_url)
         return self.form_invalid(form)
 
-class TourUpdateView(UpdateView):
+class TourUpdateView(LoginRequiredMixin, ManagerRequiredMixin, UpdateView):
     model = Tour
     form_class = TourForm
     template_name = 'main/tour_form.html'
@@ -238,22 +228,23 @@ class TourUpdateView(UpdateView):
         self.object = self.get_object()
         form = self.get_form()
         if form.is_valid():
-            # Получаем загруженный файл из request.FILES
+            tour = form.save(commit=False)
             image = request.FILES.get('image')
             if image:
-                # Обновляем изображение
-                tour = form.save(commit=False)
                 tour.image = image
-                tour.save()
-            else:
-                form.save()
+            tour.save()
+            messages.success(request, 'Тур успешно обновлен!')
             return redirect(self.success_url)
         return self.form_invalid(form)
 
-class TourDeleteView(DeleteView):
+class TourDeleteView(LoginRequiredMixin, ManagerRequiredMixin, DeleteView):
     model = Tour
     template_name = 'main/tour_confirm_delete.html'
     success_url = reverse_lazy('tour_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Тур успешно удален!')
+        return super().delete(request, *args, **kwargs)
 
 # Представление для создания отзыва
 def create_review(request, tour_id):
@@ -519,4 +510,8 @@ def bulk_tour_actions(request):
         'short_tours_updated': short_tours_updated,
         'deleted_tours': deleted_tours[0] if isinstance(deleted_tours, tuple) else 0,  # Безопасное получение количества удаленных записей
         'moscow_tours_updated': moscow_tours_updated,
-    }) 
+    })
+
+def permission_denied(request, exception):
+    """Обработчик ошибки 403 (Доступ запрещен)"""
+    return render(request, 'main/403.html', {'exception': str(exception)}, status=403) 

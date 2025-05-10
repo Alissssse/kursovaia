@@ -17,7 +17,7 @@
             </div>
         </div>
     </div>
-
+    
     <!-- Статистика (использование count) -->
     <section class="page-section bg-light">
         <div class="container">
@@ -62,8 +62,9 @@
     <!-- Популярные туры -->
     <section class="mt-5">
         <div class="container">
-            <h2 class="text-center mb-4">Популярные туры</h2>
-            
+            <h2 class="text-center mb-4">
+                <a href="{% url 'tour_list' %}" class="text-decoration-none text-dark">Популярные туры</a>
+            </h2>
             <div class="row">
                 {% top_tours as popular_tours %}
                 
@@ -71,25 +72,29 @@
                     {% for tour in popular_tours %}
                         <div class="col-md-4 mb-4">
                             <div class="card h-100">
-                                {% if tour.image %}
-                                    <img src="{{ tour.image.url }}" class="card-img-top" alt="{{ tour.title }}">
-                                {% else %}
-                                    <img src="{% static 'images/default-tour.jpg' %}" class="card-img-top" alt="Тур без изображения">
-                                {% endif %}
+                                <a href="{% url 'tour_detail' tour.id %}">
+                                    {% if tour.image %}
+                                        <img src="{{ tour.image.url }}" class="card-img-top" alt="{{ tour.name }}">
+                                    {% else %}
+                                        <img src="{% static 'img/default-tour.jpg' %}" class="card-img-top" alt="Тур без изображения">
+                                    {% endif %}
+                                </a>
                                 <div class="card-body">
-                                    <h5 class="card-title">{{ tour.title }}</h5>
+                                    <a href="{% url 'tour_detail' tour.id %}" class="card-title h5 d-block">{{ tour.name }}</a>
+                                    <p>
+                                        <a href="{% url 'tour_list' %}?location={{ tour.location }}" class="badge bg-secondary">{{ tour.location }}</a>
+                                    </p>
                                     <p class="card-text text-muted">{{ tour.price }} ₽</p>
-                                    <a href="{% url 'tour_edit' tour.id %}" class="btn btn-primary">Подробнее</a>
                                 </div>
                             </div>
                         </div>
                     {% endfor %}
-                {% else %}
+    {% else %}
                     <div class="col-12 text-center">
                         <p>Нет доступных туров</p>
                     </div>
-                {% endif %}
-            </div>
+    {% endif %}
+</div>
         </div>
     </section>
 
@@ -134,7 +139,9 @@
     <!-- Portfolio-->
     <section class="page-section bg-light" id="portfolio">
         <div class="container px-4 px-lg-5">
-            <h2 class="text-center mt-0">Наши предложения</h2>
+            <h2 class="text-center mt-0">
+                <a href="{% url 'tour_guides_list' %}" class="text-decoration-none text-dark">Лучшие гиды</a>
+            </h2>
             <hr class="divider" />
             <div class="row gx-4 gx-lg-5">
                 <!-- Лучшие гиды -->
@@ -147,7 +154,7 @@
                             {% for guide in best_guides %}
                                 <div class="mb-3">
                                     <h5 class="card-title">
-                                        <a href="#" class="text-decoration-none">{{ guide.user.username }}</a>
+                                        <a href="{% url 'tour_guides_list' %}?guide_id={{ guide.id }}" class="text-decoration-none">{{ guide.user.username }}</a>
                                     </h5>
                                     <p class="card-text">
                                         <small class="text-muted">
@@ -174,11 +181,11 @@
                             {% for booking in latest_bookings %}
                                 <div class="mb-3">
                                     <h5 class="card-title">
-                                        <a href="{% url 'tour_edit' booking.tour.pk %}" class="text-decoration-none">{{ booking.tour.name }}</a>
+                                        <a href="{% url 'tour_detail' booking.tour.id %}" class="text-decoration-none">{{ booking.tour.name }}</a>
                                     </h5>
                                     <p class="card-text">
                                         <small class="text-muted">
-                                            <i class="bi-person"></i> {{ booking.user.username }}<br>
+                                            <i class="bi-person"></i> <a href="#" class="text-decoration-none">{{ booking.user.username }}</a><br>
                                             <i class="bi-calendar"></i> {{ booking.date|date:'d.m.Y H:i' }}<br>
                                             <i class="bi-currency-ruble"></i> {{ booking.total_price }} руб.
                                         </small>
@@ -225,4 +232,17 @@
             </div>
         </div>
     </section>
+
+    <!-- Добавляем кнопку для входа в админ-панель для менеджеров -->
+    {% if user.is_authenticated and user.groups.all.0.name == 'Managers' %}
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <a href="{% url 'admin:index' %}" class="btn btn-primary">
+                    <i class="bi bi-gear"></i> Панель управления
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 {% endblock %} 
