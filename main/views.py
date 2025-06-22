@@ -1,9 +1,11 @@
+"""Основные представления приложения main."""
+
+import datetime
+from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib import messages
-from .models import Tour, Review, Rental, Guide, Booking, User, create_manager_group
-from .forms import TourForm, ReviewForm, UserProfileForm, CustomUserCreationForm
 from django.db.models import Count, Avg, Q, F
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout, login
@@ -13,11 +15,23 @@ from django.utils import timezone
 from django.db.models import Subquery
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from rest_framework import viewsets, filters, status
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.decorators import action
+from django.http import HttpResponseForbidden
+from django.utils.decorators import method_decorator
+
+from .models import Tour, Review, Rental, Guide, Booking, User, create_manager_group, Bike, Slot
+from .forms import TourForm, ReviewForm, UserProfileForm, CustomUserCreationForm, BookingForm, SlotForm, RentalForm
+from .serializers import BikeSerializer, RentalSerializer, UserSerializer
 
 class ManagerRequiredMixin(UserPassesTestMixin):
-    """Миксин для проверки прав менеджера"""
+    """Миксин для проверки прав менеджера или суперпользователя"""
     def test_func(self):
-        return self.request.user.groups.filter(name='Managers').exists()
+        return self.request.user.is_superuser or self.request.user.groups.filter(name='Managers').exists()
 
     def handle_no_permission(self):
         raise PermissionDenied("У вас нет прав для выполнения этого действия")
@@ -79,7 +93,31 @@ def index(request):
 
 def rental_list(request):
     rentals = Rental.objects.select_related('user', 'bike').all()
-    return render(request, 'main/rental_list.html', {'rentals': rentals})
+    user_search = request.GET.get('user_search', '').strip()
+    bike_search = request.GET.get('bike_search', '').strip()
+
+    if user_search:
+        rentals = rentals.filter(user__username__icontains=user_search)
+    if bike_search:
+        words = bike_search.lower().split()
+        q = Q()
+        for word in words:
+            q &= (Q(bike__type__icontains=word) | Q(bike__location__name__icontains=word))
+        if bike_search.isdigit():
+            q |= Q(bike__id=int(bike_search))
+        rentals_qs = rentals.filter(q)
+        if rentals_qs.exists():
+            rentals = rentals_qs
+        else:
+            # Если ORM не нашёл, фильтруем на Python по строковому представлению
+            rentals = [r for r in rentals if bike_search.lower() in str(r.bike).lower()]
+
+    # Пагинация
+    paginator = Paginator(rentals, 10)  # 10 аренд на страницу
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'main/rental_list.html', {'page_obj': page_obj})
 
 # Демонстрация prefetch_related
 # Выводит список туров и всех гидов для каждого тура
@@ -115,6 +153,7 @@ class TourListView(ListView):
         highly_rated = self.request.GET.get('highly_rated', '')
         exclude_duration = self.request.GET.get('exclude_duration', '')
         exclude_location = self.request.GET.get('exclude_location', '')
+        has_guide = self.request.GET.get('has_guide', '')
 
         # Применяем фильтры
         if search:
@@ -168,6 +207,11 @@ class TourListView(ListView):
         
         if exclude_location:
             queryset = queryset.exclude(location__icontains=exclude_location)
+        
+        if has_guide == '1':
+            queryset = queryset.filter(guides__isnull=False)
+        elif has_guide == '0':
+            queryset = queryset.filter(guides__isnull=True)
 
         return queryset.distinct()
 
@@ -192,6 +236,7 @@ class TourListView(ListView):
             'highly_rated': self.request.GET.get('highly_rated', ''),
             'exclude_duration': self.request.GET.get('exclude_duration', ''),
             'exclude_location': self.request.GET.get('exclude_location', ''),
+            'has_guide': self.request.GET.get('has_guide', ''),
         }
         
         # Добавляем выборки для селектов
@@ -224,9 +269,46 @@ class TourUpdateView(LoginRequiredMixin, ManagerRequiredMixin, UpdateView):
     template_name = 'main/tour_form.html'
     success_url = reverse_lazy('tour_list')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated and self.request.user.role == 'Менеджер':
+            if 'slot_form' not in context:
+                context['slot_form'] = SlotForm()
+            context['guides'] = self.object.guides.all()
+        return context
+
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = self.get_form()
+        slot_form = SlotForm(request.POST) if 'add_slot' in request.POST else SlotForm()
+        # Массовое создание слотов на 7 дней вперёд
+        if 'add_week_slots' in request.POST and (request.user.is_superuser or request.user.role == 'Менеджер'):
+            guide_id = request.POST.get('week_guide')
+            time_str = request.POST.get('week_time')
+            if guide_id and time_str:
+                guide = Guide.objects.get(id=guide_id)
+                hour, minute = map(int, time_str.split(':'))
+                today = timezone.now().date()
+                created = 0
+                for i in range(7):
+                    dt = timezone.make_aware(datetime.datetime.combine(today + timedelta(days=i), datetime.time(hour, minute)))
+                    if not Slot.objects.filter(tour=self.object, guide=guide, datetime=dt).exists():
+                        Slot.objects.create(tour=self.object, guide=guide, datetime=dt)
+                        created += 1
+                messages.success(request, f'Создано {created} слотов на 7 дней вперёд!')
+            else:
+                messages.error(request, 'Выберите гида и время!')
+            return redirect('tour_edit', pk=self.object.pk)
+        if 'add_slot' in request.POST and (request.user.is_superuser or request.user.role == 'Менеджер'):
+            if slot_form.is_valid():
+                slot = slot_form.save(commit=False)
+                slot.tour = self.object
+                slot.save()
+                messages.success(request, 'Слот успешно добавлен!')
+                return redirect('tour_edit', pk=self.object.pk)
+            else:
+                context = self.get_context_data(form=form, slot_form=slot_form)
+                return self.render_to_response(context)
         if form.is_valid():
             tour = form.save(commit=False)
             image = request.FILES.get('image')
@@ -442,32 +524,42 @@ def count_exists_example(request):
 
 # Представление для детального просмотра тура
 def tour_detail(request, tour_id):
-    """Детальное представление тура с использованием методов модели для навигации"""
     tour = get_object_or_404(Tour, id=tour_id)
-    
-    # Получаем предыдущие и следующие туры относительно текущего
     next_tours = tour.get_next_tours(3)
     prev_tours = tour.get_prev_tours(3)
-    
-    # Получаем все отзывы для этого тура
     reviews = tour.reviews.select_related('user').order_by('-created_at')
-    
-    # Вычисляем средний рейтинг
     avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
-    
-    # Похожие туры (с той же длительностью или из того же места)
     similar_tours = Tour.objects.filter(
         Q(duration=tour.duration) | Q(location__icontains=tour.location)
     ).exclude(id=tour.id)[:4]
-    
-    # Примеры использования exclude для рекомендаций
-    # Туры с похожей ценой, но не с такой же длительностью
     price_range_min = float(tour.price) * 0.8
     price_range_max = float(tour.price) * 1.2
     price_similar_tours = Tour.objects.filter(
         price__range=(price_range_min, price_range_max)
     ).exclude(duration=tour.duration).distinct()[:3]
-    
+
+    booking_form = None
+    booking_success = False
+    booking_error = None
+    if request.user.is_authenticated and request.user.role == 'Пользователь':
+        if request.method == 'POST' and 'book_tour' in request.POST:
+            booking_form = BookingForm(request.POST, tour=tour)
+            if booking_form.is_valid():
+                slot = booking_form.cleaned_data['slot']
+                # Проверка: слот не занят
+                if slot.is_booked:
+                    booking_error = 'Этот слот уже занят. Пожалуйста, выберите другой.'
+                else:
+                    Booking.objects.create(user=request.user, tour=tour, date=slot.datetime, total_price=float(tour.price))
+                    slot.is_booked = True
+                    slot.save()
+                    booking_success = True
+                    booking_form = BookingForm(tour=tour)  # сброс формы
+            else:
+                booking_error = 'Проверьте правильность заполнения формы.'
+        else:
+            booking_form = BookingForm(tour=tour)
+
     return render(request, 'main/tour_detail.html', {
         'tour': tour,
         'next_tours': next_tours,
@@ -477,6 +569,9 @@ def tour_detail(request, tour_id):
         'similar_tours': similar_tours,
         'price_similar_tours': price_similar_tours,
         'is_highly_rated': tour.is_highly_rated(),
+        'booking_form': booking_form,
+        'booking_success': booking_success,
+        'booking_error': booking_error,
     })
 
 def bulk_tour_actions(request):
@@ -514,4 +609,140 @@ def bulk_tour_actions(request):
 
 def permission_denied(request, exception):
     """Обработчик ошибки 403 (Доступ запрещен)"""
-    return render(request, 'main/403.html', {'exception': str(exception)}, status=403) 
+    return render(request, 'main/403.html', {'exception': str(exception)}, status=403)
+
+# Пагинация
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+# Валидация бизнес-логики: нельзя арендовать недоступный велосипед
+class RentalViewSet(viewsets.ModelViewSet):
+    queryset = Rental.objects.select_related('user', 'bike').all()
+    serializer_class = RentalSerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['user', 'bike', 'start_time', 'end_time', 'total_price']
+    search_fields = ['user__username', 'bike__type']
+    ordering_fields = ['start_time', 'end_time', 'total_price']
+
+    def create(self, request, *args, **kwargs):
+        bike_id = request.data.get('bike')
+        if bike_id:
+            bike = Bike.objects.filter(id=bike_id).first()
+            if bike and bike.status.status_name != 'Доступен':
+                return Response({'error': 'Велосипед недоступен для аренды.'}, status=status.HTTP_400_BAD_REQUEST)
+        return super().create(request, *args, **kwargs)
+
+    @action(methods=['GET'], detail=False)
+    def my_rentals(self, request):
+        user = request.user
+        rentals = self.get_queryset().filter(user=user)
+        serializer = self.get_serializer(rentals, many=True)
+        return Response(serializer.data)
+
+    @action(methods=['GET'], detail=False)
+    def expensive_or_long(self, request):
+        # Аренды, где (цена > 1000 и пользователь не admin) или велосипед НЕ стандартный
+        queryset = self.get_queryset().filter(
+            (Q(total_price__gt=1000) & ~Q(user__username__icontains='admin')) |
+            ~Q(bike__type='standard')
+        )
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(methods=['GET'], detail=False)
+    def active_not_electric(self, request):
+        # Аренды, где (ещё не завершены и велосипед НЕ электрический) или пользователь НЕ manager
+        queryset = self.get_queryset().filter(
+            (Q(end_time__gte=timezone.now()) & ~Q(bike__type='electric')) |
+            ~Q(user__role='manager')
+        )
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+class BikeViewSet(viewsets.ModelViewSet):
+    queryset = Bike.objects.select_related('status', 'location').all()
+    serializer_class = BikeSerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['type', 'status', 'location']
+    search_fields = ['type', 'location__name']
+    ordering_fields = ['rental_price_hour', 'rental_price_day']
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['role', 'gender']
+    search_fields = ['username', 'email']
+    ordering_fields = ['username', 'email']
+
+@login_required
+def slot_create(request, tour_id):
+    tour = get_object_or_404(Tour, id=tour_id)
+    if request.user.role != 'Менеджер':
+        return HttpResponseForbidden('Доступ разрешён только менеджерам')
+    if request.method == 'POST':
+        form = SlotForm(request.POST)
+        if form.is_valid():
+            slot = form.save(commit=False)
+            slot.tour = tour
+            slot.save()
+            messages.success(request, 'Слот успешно добавлен!')
+            return redirect('tour_edit', pk=tour.id)
+    else:
+        form = SlotForm()
+    return render(request, 'main/slot_form.html', {'form': form, 'tour': tour})
+
+@login_required
+def slot_update(request, slot_id):
+    slot = get_object_or_404(Slot, id=slot_id)
+    if request.user.role != 'Менеджер':
+        return HttpResponseForbidden('Доступ разрешён только менеджерам')
+    if request.method == 'POST':
+        form = SlotForm(request.POST, instance=slot)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Слот успешно обновлён!')
+            return redirect('tour_edit', pk=slot.tour.id)
+    else:
+        form = SlotForm(instance=slot)
+    return render(request, 'main/slot_form.html', {'form': form, 'tour': slot.tour})
+
+@login_required
+def slot_delete(request, slot_id):
+    slot = get_object_or_404(Slot, id=slot_id)
+    if request.user.role != 'Менеджер':
+        return HttpResponseForbidden('Доступ разрешён только менеджерам')
+    tour_id = slot.tour.id
+    if request.method == 'POST':
+        slot.delete()
+        messages.success(request, 'Слот успешно удалён!')
+        return redirect('tour_edit', pk=tour_id)
+    return render(request, 'main/slot_confirm_delete.html', {'slot': slot})
+
+class RentalCreateView(LoginRequiredMixin, ManagerRequiredMixin, CreateView):
+    model = Rental
+    form_class = RentalForm
+    template_name = 'main/rental_form.html'
+    success_url = reverse_lazy('rental_list')
+
+    def form_valid(self, form):
+        rental = form.save(commit=False)
+        rental.user = self.request.user
+        rental.total_price = form.cleaned_data['total_price']
+        rental.save()
+        messages.success(self.request, 'Аренда успешно создана!')
+        return redirect(self.success_url)
+
+class RentalDeleteView(LoginRequiredMixin, ManagerRequiredMixin, DeleteView):
+    model = Rental
+    template_name = 'main/rental_confirm_delete.html'
+    success_url = reverse_lazy('rental_list')
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Аренда успешно удалена!')
+        return super().delete(request, *args, **kwargs) 

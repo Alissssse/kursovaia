@@ -1,0 +1,13 @@
+{% extends 'main/base.html' %}
+{% block title %}Слот для тура{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h3>{% if form.instance.pk %}Редактировать слот{% else %}Добавить слот{% endif %} для тура "{{ tour.name }}"</h3>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Сохранить{% else %}Добавить{% endif %}</button>
+        <a href="{% url 'tour_edit' tour.id %}" class="btn btn-secondary">Назад к туру</a>
+    </form>
+</div>
+{% endblock %} 

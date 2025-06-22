@@ -22,9 +22,10 @@ class User(AbstractUser):
         ('Женский', 'Женский'),
     )
     ROLE_CHOICES = (
-        ('Пользователь', 'Пользователь'),
-        ('Гид', 'Гид'),
-        ('Администратор', 'Администратор'),
+       ('Пользователь', 'Пользователь'),
+       ('Гид', 'Гид'),
+       ('Менеджер', 'Менеджер'),
+       ('Администратор', 'Администратор'),
     )
 
     # лаба 1: Демонстрация models.ImageField и Pillow
@@ -157,6 +158,7 @@ class Tour(models.Model):
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
     is_active = models.BooleanField(default=True, verbose_name='Активен')
+    start_time = models.DateTimeField(null=True, blank=True, verbose_name='Дата и время начала экскурсии')
 
     def __str__(self):
         # Получаем человекочитаемое значение для длительности
@@ -277,4 +279,18 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.amount} руб."
+
+class Slot(models.Model):
+    tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name='slots', verbose_name='Тур')
+    guide = models.ForeignKey(Guide, on_delete=models.CASCADE, related_name='slots', verbose_name='Гид')
+    datetime = models.DateTimeField(verbose_name='Дата и время')
+    is_booked = models.BooleanField(default=False, verbose_name='Забронировано')
+
+    class Meta:
+        verbose_name = 'Слот экскурсии'
+        verbose_name_plural = 'Слоты экскурсий'
+        ordering = ['datetime']
+
+    def __str__(self):
+        return f"{self.tour.name} | {self.guide.user.get_full_name()} | {self.datetime.strftime('%d.%m.%Y %H:%M')}"
 

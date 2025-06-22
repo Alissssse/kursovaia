@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import User, Guide, Tour, GuideTour, Rental, Bike, Location, Review, Booking
+from import_export.admin import ImportExportModelAdmin
+from import_export import resources
+from .models import User, Guide, Tour, GuideTour, Rental, Bike, Location, Review, Booking, Slot
+from django.utils.translation import gettext_lazy as _
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -13,11 +16,38 @@ class GuideAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'languages')
     list_filter = ('experience',)
 
+# Фильтр по наличию фото для Tour
+class HasImageFilter(admin.SimpleListFilter):
+    title = _('Наличие фото')
+    parameter_name = 'has_image'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', _('Есть фото')),
+            ('no', _('Нет фото')),
+        )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == 'yes':
+            return queryset.exclude(image='')
+        if value == 'no':
+            return queryset.filter(image='')
+        return queryset
+
+class SlotInline(admin.TabularInline):
+    model = Slot
+    extra = 1
+    fields = ('guide', 'datetime', 'is_booked')
+    autocomplete_fields = ['guide']
+    show_change_link = True
+
 @admin.register(Tour)
 class TourAdmin(admin.ModelAdmin):
     list_display = ('name', 'duration', 'price', 'location')
     search_fields = ('name', 'location')
-    list_filter = ('location',)
+    list_filter = ('location', HasImageFilter,)
+    inlines = [SlotInline]
     
     class Media:
         css = {
@@ -34,17 +64,56 @@ class GuideTourAdmin(admin.ModelAdmin):
     search_fields = ('guide__user__username', 'tour__name')
     list_filter = ('assigned_at',)
 
-@admin.register(Rental)
-class RentalAdmin(admin.ModelAdmin):
-    list_display = ('user', 'bike', 'start_time', 'end_time', 'total_price')
-    search_fields = ('user__username', 'bike__id')
-    list_filter = ('start_time', 'end_time')
+class BikeResource(resources.ModelResource):
+    def dehydrate_type(self, bike):
+        return bike.get_type_display() if hasattr(bike, 'get_type_display') else bike.type
+    def get_export_queryset(self, request):
+        return super().get_export_queryset(request).filter(status__status_name='Доступен')
+    def dehydrate_status(self, bike):
+        return bike.status.status_name if hasattr(bike.status, 'status_name') else str(bike.status)
 
-@admin.register(Bike)
-class BikeAdmin(admin.ModelAdmin):
-    list_display = ('type', 'status', 'rental_price_hour', 'rental_price_day', 'location')
+class BikeAdmin(ImportExportModelAdmin):
+    resource_class = BikeResource
+    list_display = ('id', 'type', 'status', 'location', 'rental_price_hour')
+    list_filter = ('type', 'status', 'location')
     search_fields = ('type', 'location__name')
-    list_filter = ('type', 'status')
+    readonly_fields = ('id',)
+    list_display_links = ('id', 'type')
+    fieldsets = (
+        (None, {'fields': ('type', 'status', 'location')}),
+        ('Цены', {'fields': ('rental_price_hour', 'rental_price_day')}),
+    )
+
+class RentalResource(resources.ModelResource):
+    def get_export_queryset(self, request):
+        return super().get_export_queryset(request).filter(end_time__isnull=False)
+
+    def dehydrate_total_price(self, rental):
+        return f"{rental.total_price} руб."
+
+    def get_bike_display(self, rental):
+        return f"{rental.bike.get_type_display()} ({rental.bike.location.name})"
+
+    class Meta:
+        model = Rental
+
+class RentalAdmin(ImportExportModelAdmin):
+    resource_class = RentalResource
+    list_display = ('id', 'user', 'bike', 'start_time', 'end_time', 'total_price')
+    list_filter = ('user', 'bike', 'start_time')
+    search_fields = ('user__username', 'bike__type')
+    readonly_fields = ('id',)
+    list_display_links = ('id', 'user')
+    fieldsets = (
+        (None, {'fields': ('user', 'bike', 'start_time', 'end_time', 'total_price')}),
+    )
+
+# Удаляю старую регистрацию Rental, если есть
+try:
+    admin.site.unregister(Rental)
+except admin.sites.NotRegistered:
+    pass
+admin.site.register(Rental, RentalAdmin)
 
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
@@ -61,4 +130,10 @@ class ReviewAdmin(admin.ModelAdmin):
 class BookingAdmin(admin.ModelAdmin):
     list_display = ('user', 'tour', 'date', 'total_price')
     search_fields = ('user__username', 'tour__name')
-    list_filter = ('date',) 
+    list_filter = ('date',)
+
+@admin.register(Slot)
+class SlotAdmin(admin.ModelAdmin):
+    list_display = ('tour', 'guide', 'datetime', 'is_booked')
+    list_filter = ('tour', 'guide', 'is_booked')
+    search_fields = ('tour__name', 'guide__user__username') 

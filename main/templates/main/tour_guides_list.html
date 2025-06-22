@@ -3,29 +3,76 @@
 {% block title %}Гиды по турам{% endblock %}
 
 {% block content %}
-<h2>Гиды по турам</h2>
-<table class="table">
-    <tr>
-        <th>Маршрут</th>
-        <th>Гиды</th>
-    </tr>
-    {% for tour in tours %}
-    <tr>
-        <td>{{ tour.name }}</td>
-        <td>
-            {% if tour.guides.all %}
-                <ul>
-                {% for guide in tour.guides.all %}
-                    <li>{{ guide.user.username }}</li>
-                {% empty %}
-                    <li>Нет гидов</li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                Нет гидов
+<div class="container mt-4">
+    <h2 class="mb-4">Гиды по турам</h2>
+    <!-- Фильтр -->
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-5">
+            <input type="text" name="tour_search" class="form-control" placeholder="Поиск по названию тура" value="{{ request.GET.tour_search }}">
+        </div>
+        <div class="col-md-5">
+            <input type="text" name="guide_search" class="form-control" placeholder="Поиск по имени гида" value="{{ request.GET.guide_search }}">
+        </div>
+        <div class="col-md-2 d-grid">
+            <button type="submit" class="btn btn-outline-primary">Найти</button>
+        </div>
+    </form>
+    <div class="row">
+        {% for tour in page_obj %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0" style="background: #f8fafc;">
+                <div class="card-header text-white" style="background: linear-gradient(90deg, #4f8cff 0%, #6ed0f6 100%);">
+                    <h5 class="mb-0">{{ tour.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Гиды:</h6>
+                    {% if tour.guides.all %}
+                        <ul class="list-group list-group-flush mb-0">
+                        {% for guide in tour.guides.all %}
+                            <li class="list-group-item bg-transparent border-0 ps-0">
+                                <i class="bi bi-person-circle me-2 text-primary"></i>{{ guide.user.username }}
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted bg-transparent border-0 ps-0">Нет гидов</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">Нет гидов</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <!-- Пагинация -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Пагинация" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.tour_search %}&tour_search={{ request.GET.tour_search }}{% endif %}{% if request.GET.guide_search %}&guide_search={{ request.GET.guide_search }}{% endif %}">&laquo;&laquo;</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.tour_search %}&tour_search={{ request.GET.tour_search }}{% endif %}{% if request.GET.guide_search %}&guide_search={{ request.GET.guide_search }}{% endif %}">&laquo;</a>
+            </li>
             {% endif %}
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.tour_search %}&tour_search={{ request.GET.tour_search }}{% endif %}{% if request.GET.guide_search %}&guide_search={{ request.GET.guide_search }}{% endif %}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.tour_search %}&tour_search={{ request.GET.tour_search }}{% endif %}{% if request.GET.guide_search %}&guide_search={{ request.GET.guide_search }}{% endif %}">&raquo;</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.tour_search %}&tour_search={{ request.GET.tour_search }}{% endif %}{% if request.GET.guide_search %}&guide_search={{ request.GET.guide_search }}{% endif %}">&raquo;&raquo;</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
 {% endblock %} 

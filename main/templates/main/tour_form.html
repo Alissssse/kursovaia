@@ -85,21 +85,7 @@
                     </div>
 
                     {% if form.instance.pk %}
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h5 class="card-title">Информация о времени</h5>
-                                    <p class="card-text"><strong>Дата создания:</strong> {{ form.instance.created_at|date:"d.m.Y H:i" }}</p>
-                                    <p class="card-text"><strong>Дата обновления:</strong> {{ form.instance.updated_at|date:"d.m.Y H:i" }}</p>
-                                    <p class="card-text"><strong>Возраст (дней):</strong> {{ form.instance.get_age }}</p>
-                                    {% if form.instance.was_recently_updated %}
-                                        <div class="alert alert-info">Недавно обновлено</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Блок информации о времени удалён по просьбе пользователя -->
                     {% endif %}
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -109,6 +95,63 @@
                         </button>
                     </div>
                 </form>
+                {% if form.instance.pk and user.is_authenticated and user.is_superuser or user.role == 'Менеджер' %}
+                <hr>
+                <h5>Слоты этого тура</h5>
+                <form method="post" class="row g-2 align-items-end mb-3">
+                    {% csrf_token %}
+                    {{ slot_form.guide.label_tag }} {{ slot_form.guide }}
+                    {{ slot_form.datetime.label_tag }} {{ slot_form.datetime }}
+                    <button type="submit" name="add_slot" class="btn btn-success btn-sm ms-2">Добавить слот</button>
+                    {% if slot_form.errors %}
+                        <div class="text-danger small">{{ slot_form.errors }}</div>
+                    {% endif %}
+                </form>
+                <form method="post" class="row g-2 align-items-end mb-3">
+                    {% csrf_token %}
+                    <div class="col-auto">
+                        <label for="week_guide">Гид для недели:</label>
+                        <select name="week_guide" class="form-control">
+                            <option value="">Выберите гида</option>
+                            {% for guide in guides %}
+                                <option value="{{ guide.id }}">{{ guide.user.get_full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label for="week_time">Время:</label>
+                        <input type="time" name="week_time" class="form-control" required>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" name="add_week_slots" class="btn btn-primary btn-sm">Назначить на 7 дней вперёд</button>
+                    </div>
+                </form>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Гид</th>
+                            <th>Дата и время</th>
+                            <th>Занят</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for slot in form.instance.slots.all %}
+                        <tr>
+                            <td>{{ slot.guide.user.get_full_name }}</td>
+                            <td>{{ slot.datetime|date:'d.m.Y H:i' }}</td>
+                            <td>{% if slot.is_booked %}Да{% else %}Нет{% endif %}</td>
+                            <td>
+                                <a href="{% url 'slot_update' slot.id %}" class="btn btn-primary btn-sm">Редактировать</a>
+                                <a href="{% url 'slot_delete' slot.id %}" class="btn btn-danger btn-sm">Удалить</a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted">Нет слотов</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
             </div>
         </div>
     </div>

@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Tour, Review, User
+from .models import Tour, Review, User, Booking, Guide, GuideTour, Slot, Rental, BikeStatus, Bike
 
 class TourForm(forms.ModelForm):
     class Meta:
@@ -60,4 +60,62 @@ class UserProfileForm(forms.ModelForm):
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ('username', 'email', 'password1', 'password2') 
+        fields = ('username', 'email', 'password1', 'password2')
+
+class BookingForm(forms.ModelForm):
+    slot = forms.ModelChoiceField(queryset=Slot.objects.none(), label='Доступные слоты', empty_label="Выберите слот", widget=forms.Select(attrs={'class': 'form-control'}))
+
+    class Meta:
+        model = Booking
+        fields = ['slot']
+
+    def __init__(self, *args, **kwargs):
+        tour = kwargs.pop('tour', None)
+        super().__init__(*args, **kwargs)
+        if tour:
+            self.fields['slot'].queryset = Slot.objects.filter(tour=tour, is_booked=False).order_by('datetime')
+
+class SlotForm(forms.ModelForm):
+    class Meta:
+        model = Slot
+        fields = ['guide', 'datetime', 'is_booked']
+        widgets = {
+            'guide': forms.Select(attrs={'class': 'form-control'}),
+            'datetime': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'is_booked': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+class RentalForm(forms.ModelForm):
+    class Meta:
+        model = Rental
+        fields = ['bike', 'start_time', 'end_time']
+        widgets = {
+            'bike': forms.Select(attrs={'class': 'form-control'}),
+            'start_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Показывать только доступные велосипеды
+        available_status = BikeStatus.objects.filter(status_name='Доступен').first()
+        if available_status:
+            self.fields['bike'].queryset = Bike.objects.filter(status=available_status)
+        else:
+            self.fields['bike'].queryset = Bike.objects.none()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+        bike = cleaned_data.get('bike')
+        if start_time and end_time and bike:
+            duration_hours = (end_time - start_time).total_seconds() / 3600
+            if duration_hours <= 0:
+                raise forms.ValidationError('Время окончания должно быть позже времени начала.')
+            # Если аренда больше 6 часов, считать как день
+            if duration_hours > 6:
+                cleaned_data['total_price'] = bike.rental_price_day
+            else:
+                cleaned_data['total_price'] = round(bike.rental_price_hour * duration_hours, 2)
+        return cleaned_data 

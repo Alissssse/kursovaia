@@ -7,13 +7,12 @@
 {% block content %}
     <div class="container px-4 px-lg-5">
         <div class="row gx-4 gx-lg-5 h-100 align-items-center justify-content-center text-center">
-            <div class="col-lg-8 align-self-end">
-                <h1 class="text-white font-weight-bold">Велосипедные туры по Москве</h1>
+            <div class="col-lg-8 align-self-end hero-welcome">
+                <div class="hero-icon mb-3"><i class="bi bi-bicycle"></i></div>
+                <h1 class="font-weight-bold">Велосипедные туры по Москве</h1>
                 <hr class="divider" />
-            </div>
-            <div class="col-lg-8 align-self-baseline">
-                <p class="text-white-75 mb-5">Исследуйте Москву на велосипеде вместе с нами! Индивидуальные и групповые туры для всех уровней подготовки.</p>
-                <a class="btn btn-primary btn-xl" href="{% url 'tour_list' %}">Найти тур</a>
+                <p class="hero-lead mb-5">Исследуйте Москву на велосипеде вместе с нами! Индивидуальные и групповые туры для всех уровней подготовки.</p>
+                <a class="btn btn-hero" href="{% url 'tour_list' %}">Найти тур</a>
             </div>
         </div>
     </div>
@@ -143,61 +142,58 @@
                 <a href="{% url 'tour_guides_list' %}" class="text-decoration-none text-dark">Лучшие гиды</a>
             </h2>
             <hr class="divider" />
-            <div class="row gx-4 gx-lg-5">
+            <div class="guides-bookings-section">
                 <!-- Лучшие гиды -->
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 shadow">
-                        <div class="card-header bg-success text-white">
-                            <a href="{% url 'tour_guides_list' %}" class="text-white text-decoration-none">Лучшие гиды</a>
-                        </div>
-                        <div class="card-body">
-                            {% for guide in best_guides %}
-                                <div class="mb-3">
-                                    <h5 class="card-title">
-                                        <a href="{% url 'tour_guides_list' %}?guide_id={{ guide.id }}" class="text-decoration-none">{{ guide.user.username }}</a>
-                                    </h5>
-                                    <p class="card-text">
-                                        <small class="text-muted">
-                                            <i class="bi-star-fill text-warning"></i> Рейтинг: {{ guide.rating }}<br>
-                                            <i class="bi-clock-history"></i> Опыт: {{ guide.experience }} лет<br>
-                                            <i class="bi-bicycle"></i> Туров: {{ guide.tours.count }}
-                                        </small>
-                                    </p>
-                                </div>
-                                {% if not forloop.last %}<hr>{% endif %}
-                            {% empty %}
-                                <p class="card-text text-muted">Нет доступных гидов</p>
-                            {% endfor %}
-                        </div>
-                    </div>
+                <div class="guide-card">
+                    <div class="card-header">Лучшие гиды</div>
+                    <ul class="list-group list-group-flush">
+                        {% for guide in best_guides %}
+                            <li class="list-group-item">
+                                <span class="guide-name"><a href="{% url 'tour_guides_list' %}?guide_id={{ guide.id }}" class="text-decoration-none">{{ guide.user.username }}</a></span>
+                                <span class="guide-rating">&#11088; {{ guide.rating }}</span>
+                                <span class="guide-info">&#128337; {{ guide.experience }} лет</span>
+                                <span class="guide-info">&#128690; {{ guide.tours.count }}</span>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">Нет доступных гидов</li>
+                        {% endfor %}
+                    </ul>
                 </div>
+                {% if user.is_authenticated and user.is_superuser %}
                 <!-- Последние бронирования -->
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100 shadow">
-                        <div class="card-header bg-info text-white">
-                            <a href="{% url 'rental_list' %}" class="text-white text-decoration-none">Последние бронирования</a>
-                        </div>
-                        <div class="card-body">
-                            {% for booking in latest_bookings %}
-                                <div class="mb-3">
-                                    <h5 class="card-title">
-                                        <a href="{% url 'tour_detail' booking.tour.id %}" class="text-decoration-none">{{ booking.tour.name }}</a>
-                                    </h5>
-                                    <p class="card-text">
-                                        <small class="text-muted">
-                                            <i class="bi-person"></i> <a href="#" class="text-decoration-none">{{ booking.user.username }}</a><br>
-                                            <i class="bi-calendar"></i> {{ booking.date|date:'d.m.Y H:i' }}<br>
-                                            <i class="bi-currency-ruble"></i> {{ booking.total_price }} руб.
-                                        </small>
-                                    </p>
-                                </div>
-                                {% if not forloop.last %}<hr>{% endif %}
-                            {% empty %}
-                                <p class="card-text text-muted">Нет последних бронирований</p>
-                            {% endfor %}
-                        </div>
-                    </div>
+                <div class="booking-card">
+                    <div class="card-header">Последние бронирования</div>
+                    <ul class="list-group list-group-flush">
+                        {% for booking in latest_bookings %}
+                            <li class="list-group-item">
+                                <span class="booking-title"><a href="{% url 'tour_detail' booking.tour.id %}" class="text-decoration-none">{{ booking.tour.name }}</a></span>
+                                <span class="booking-user">&#128100; {{ booking.user.username }}</span>
+                                <span class="booking-date">&#128197; {{ booking.date|date:'d.m.Y H:i' }}</span>
+                                <span class="booking-price">&#8381; {{ booking.total_price }} руб.</span>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">Нет последних бронирований</li>
+                        {% endfor %}
+                    </ul>
                 </div>
+                {% elif user.is_authenticated and user.groups.all.0.name == 'Managers' %}
+                <!-- Последние бронирования -->
+                <div class="booking-card">
+                    <div class="card-header">Последние бронирования</div>
+                    <ul class="list-group list-group-flush">
+                        {% for booking in latest_bookings %}
+                            <li class="list-group-item">
+                                <span class="booking-title"><a href="{% url 'tour_detail' booking.tour.id %}" class="text-decoration-none">{{ booking.tour.name }}</a></span>
+                                <span class="booking-user">&#128100; {{ booking.user.username }}</span>
+                                <span class="booking-date">&#128197; {{ booking.date|date:'d.m.Y H:i' }}</span>
+                                <span class="booking-price">&#8381; {{ booking.total_price }} руб.</span>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">Нет последних бронирований</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
             </div>
         </div>
     </section>

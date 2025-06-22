@@ -3,23 +3,94 @@
 {% block title %}Список аренд{% endblock %}
 
 {% block content %}
-<h2>Список аренд</h2>
-<table class="table">
-    <tr>
-        <th>Пользователь</th>
-        <th>Велосипед</th>
-        <th>Время начала</th>
-        <th>Время окончания</th>
-        <th>Общая стоимость</th>
-    </tr>
-    {% for rental in rentals %}
-    <tr>
-        <td>{{ rental.user.username }}</td>
-        <td>{{ rental.bike }}</td>
-        <td>{{ rental.start_time }}</td>
-        <td>{{ rental.end_time }}</td>
-        <td>{{ rental.total_price }}</td>
-    </tr>
-    {% endfor %}
-</table>
+<div class="container mt-4">
+    <h2 class="mb-4">Список аренд</h2>
+    {% if user.is_authenticated and user.is_superuser or user.role == 'Менеджер' %}
+    <div class="mb-3">
+        <a href="{% url 'rental_create' %}" class="btn btn-success">Создать аренду</a>
+    </div>
+    {% endif %}
+    <!-- Фильтр -->
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-5">
+            <input type="text" name="user_search" class="form-control" placeholder="Поиск по пользователю" value="{{ request.GET.user_search }}">
+        </div>
+        <div class="col-md-5">
+            <input type="text" name="bike_search" class="form-control" placeholder="Поиск по велосипеду" value="{{ request.GET.bike_search }}">
+        </div>
+        <div class="col-md-2 d-grid">
+            <button type="submit" class="btn btn-outline-primary">Найти</button>
+        </div>
+    </form>
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Пользователь</th>
+                            <th>Велосипед</th>
+                            <th>Время начала</th>
+                            <th>Время окончания</th>
+                            <th>Общая стоимость</th>
+                            {% if user.is_authenticated and user.is_superuser or user.role == 'Менеджер' %}
+                            <th>Действия</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rental in page_obj %}
+                        <tr>
+                            <td>{{ rental.user.username }}</td>
+                            <td>{{ rental.bike }}</td>
+                            <td>{{ rental.start_time }}</td>
+                            <td>{{ rental.end_time }}</td>
+                            <td>{{ rental.total_price }}</td>
+                            {% if user.is_authenticated and user.is_superuser or user.role == 'Менеджер' %}
+                            <td>
+                                <a href="{% url 'rental_delete' rental.id %}" class="btn btn-danger btn-sm">Удалить</a>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Нет аренд по заданным критериям</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Пагинация -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Пагинация" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.user_search %}&user_search={{ request.GET.user_search }}{% endif %}{% if request.GET.bike_search %}&bike_search={{ request.GET.bike_search }}{% endif %}">&laquo;&laquo;</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.user_search %}&user_search={{ request.GET.user_search }}{% endif %}{% if request.GET.bike_search %}&bike_search={{ request.GET.bike_search }}{% endif %}">&laquo;</a>
+            </li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.user_search %}&user_search={{ request.GET.user_search }}{% endif %}{% if request.GET.bike_search %}&bike_search={{ request.GET.bike_search }}{% endif %}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.user_search %}&user_search={{ request.GET.user_search }}{% endif %}{% if request.GET.bike_search %}&bike_search={{ request.GET.bike_search }}{% endif %}">&raquo;</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.user_search %}&user_search={{ request.GET.user_search }}{% endif %}{% if request.GET.bike_search %}&bike_search={{ request.GET.bike_search }}{% endif %}">&raquo;&raquo;</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
 {% endblock %} 

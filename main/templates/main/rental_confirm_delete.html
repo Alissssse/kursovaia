@@ -1,0 +1,30 @@
+{% extends 'main/base.html' %}
+{% block title %}Удаление аренды{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Подтвердите удаление аренды</h4>
+                </div>
+                <div class="card-body">
+                    <p>Вы действительно хотите удалить аренду?</p>
+                    <ul>
+                        <li><b>Пользователь:</b> {{ object.user.username }}</li>
+                        <li><b>Велосипед:</b> {{ object.bike }}</li>
+                        <li><b>Время начала:</b> {{ object.start_time }}</li>
+                        <li><b>Время окончания:</b> {{ object.end_time }}</li>
+                        <li><b>Общая стоимость:</b> {{ object.total_price }}</li>
+                    </ul>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Удалить</button>
+                        <a href="{% url 'rental_list' %}" class="btn btn-secondary ms-2">Отмена</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
