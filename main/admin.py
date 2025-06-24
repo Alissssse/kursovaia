@@ -1,3 +1,6 @@
+"""
+Админка для bike tours: регистрация моделей, кастомизация отображения, фильтры.
+"""
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 from import_export import resources
@@ -6,28 +9,33 @@ from django.utils.translation import gettext_lazy as _
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
+    """Админка для пользователей."""
     list_display = ('username', 'email', 'role', 'gender', 'date_of_birth', 'created_at')
     search_fields = ('username', 'email')
     list_filter = ('role', 'gender')
 
 @admin.register(Guide)
 class GuideAdmin(admin.ModelAdmin):
+    """Админка для гидов."""
     list_display = ('user', 'experience', 'languages', 'rating')
     search_fields = ('user__username', 'languages')
     list_filter = ('experience',)
 
 # Фильтр по наличию фото для Tour
 class HasImageFilter(admin.SimpleListFilter):
+    """Фильтр по наличию фото для Tour."""
     title = _('Наличие фото')
     parameter_name = 'has_image'
 
     def lookups(self, request, model_admin):
+        """Опции фильтра: есть фото/нет фото."""
         return (
             ('yes', _('Есть фото')),
             ('no', _('Нет фото')),
         )
 
     def queryset(self, request, queryset):
+        """Фильтрация queryset по наличию фото."""
         value = self.value()
         if value == 'yes':
             return queryset.exclude(image='')
@@ -36,6 +44,7 @@ class HasImageFilter(admin.SimpleListFilter):
         return queryset
 
 class SlotInline(admin.TabularInline):
+    """Инлайн-форма для слотов тура."""
     model = Slot
     extra = 1
     fields = ('guide', 'datetime', 'is_booked')
@@ -44,12 +53,14 @@ class SlotInline(admin.TabularInline):
 
 @admin.register(Tour)
 class TourAdmin(admin.ModelAdmin):
+    """Админка для туров."""
     list_display = ('name', 'duration', 'price', 'location')
     search_fields = ('name', 'location')
     list_filter = ('location', HasImageFilter,)
     inlines = [SlotInline]
     
     class Media:
+        """Подключение кастомных стилей и скриптов для админки тура."""
         css = {
             'all': ('css/custom_admin.css',)  # Путь относительно static/
         }
@@ -60,19 +71,25 @@ class TourAdmin(admin.ModelAdmin):
 
 @admin.register(GuideTour)
 class GuideTourAdmin(admin.ModelAdmin):
+    """Админка для связи гид-тур."""
     list_display = ('guide', 'tour', 'assigned_at')
     search_fields = ('guide__user__username', 'tour__name')
     list_filter = ('assigned_at',)
 
 class BikeResource(resources.ModelResource):
+    """Ресурс экспорта велосипедов."""
     def dehydrate_type(self, bike):
+        """Преобразует тип велосипеда в строку для экспорта."""
         return bike.get_type_display() if hasattr(bike, 'get_type_display') else bike.type
     def get_export_queryset(self, request):
+        """Фильтрует только доступные велосипеды для экспорта."""
         return super().get_export_queryset(request).filter(status__status_name='Доступен')
     def dehydrate_status(self, bike):
+        """Преобразует статус велосипеда в строку для экспорта."""
         return bike.status.status_name if hasattr(bike.status, 'status_name') else str(bike.status)
 
 class BikeAdmin(ImportExportModelAdmin):
+    """Админка для велосипедов с экспортом."""
     resource_class = BikeResource
     list_display = ('id', 'type', 'status', 'location', 'rental_price_hour')
     list_filter = ('type', 'status', 'location')
@@ -136,4 +153,10 @@ class BookingAdmin(admin.ModelAdmin):
 class SlotAdmin(admin.ModelAdmin):
     list_display = ('tour', 'guide', 'datetime', 'is_booked')
     list_filter = ('tour', 'guide', 'is_booked')
-    search_fields = ('tour__name', 'guide__user__username') 
+    search_fields = ('tour__name', 'guide__user__username')
+
+# ... existing code ...
+
+# ... final translation line ...
+
+# ... rest of the file ... 

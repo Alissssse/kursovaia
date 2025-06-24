@@ -4,6 +4,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """Миграция для добавления изображения к туру."""
 
     dependencies = [
         ('main', '0009_tour_is_active'),

@@ -4,6 +4,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """Миграция для изменения опций тура и локации."""
 
     dependencies = [
         ('main', '0004_guide_profile_url'),

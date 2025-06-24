@@ -4,6 +4,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """Миграция для добавления времени начала тура."""
 
     dependencies = [
         ('main', '0010_tour_image'),

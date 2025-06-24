@@ -6,6 +6,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """Миграция для изменения опций тура и локации велосипеда."""
 
     dependencies = [
         ('main', '0007_tour_created_at_tour_updated_at'),
@@ -79,6 +80,18 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='tour',
             name='duration',
-            field=models.IntegerField(choices=[(1, '1 час'), (2, '2 часа'), (3, '3 часа'), (4, '4 часа'), (6, '6 часов'), (8, '8 часов (целый день)'), (12, '12 часов'), (24, '24 часа (сутки)')], verbose_name='Длительность (часы)'),
+            field=models.IntegerField(
+                choices=[
+                    (1, '1 час'),
+                    (2, '2 часа'),
+                    (3, '3 часа'),
+                    (4, '4 часа'),
+                    (6, '6 часов'),
+                    (8, '8 часов (целый день)'),
+                    (12, '12 часов'),
+                    (24, '24 часа (сутки)')
+                ],
+                verbose_name='Длительность (часы)'
+            ),
         ),
     ]

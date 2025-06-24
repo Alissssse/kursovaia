@@ -39,24 +39,43 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for rental in page_obj %}
-                        <tr>
-                            <td>{{ rental.user.username }}</td>
-                            <td>{{ rental.bike }}</td>
-                            <td>{{ rental.start_time }}</td>
-                            <td>{{ rental.end_time }}</td>
-                            <td>{{ rental.total_price }}</td>
-                            {% if user.is_authenticated and user.is_superuser or user.role == 'Менеджер' %}
-                            <td>
-                                <a href="{% url 'rental_delete' rental.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                            </td>
-                            {% endif %}
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center text-muted">Нет аренд по заданным критериям</td>
-                        </tr>
-                        {% endfor %}
+                        {% if user.is_authenticated and not user.is_superuser and user.role != 'Менеджер' %}
+                            {% for rental in page_obj %}
+                                {% if rental.user == user %}
+                                <tr>
+                                    <td>{{ rental.bike }}</td>
+                                    <td>{{ rental.start_time }}</td>
+                                    <td>{{ rental.end_time }}</td>
+                                    <td>{{ rental.total_price }}</td>
+                                    <td>
+                                        <a href="{% url 'rental_update' rental.id %}" class="btn btn-primary btn-sm">Изменить</a>
+                                        <a href="{% url 'rental_delete' rental.id %}" class="btn btn-danger btn-sm">Удалить</a>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">Нет аренд</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            {% for rental in page_obj %}
+                                <tr>
+                                    <td>{{ rental.user.username }}</td>
+                                    <td>{{ rental.bike }}</td>
+                                    <td>{{ rental.start_time }}</td>
+                                    <td>{{ rental.end_time }}</td>
+                                    <td>{{ rental.total_price }}</td>
+                                    <td>
+                                        <a href="{% url 'rental_delete' rental.id %}" class="btn btn-danger btn-sm">Удалить</a>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">Нет аренд по заданным критериям</td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
                     </tbody>
                 </table>
             </div>

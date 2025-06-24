@@ -1,3 +1,6 @@
+"""
+Модели для приложения bike tours: пользователи, гиды, туры, аренды, отзывы и т.д.
+"""
 # models.py (main/models.py)
 from django.db import models
 from django.contrib.auth.models import AbstractUser, Group, Permission
@@ -17,6 +20,7 @@ def create_manager_group():
     manager_group.permissions.add(*tour_permissions)
 
 class User(AbstractUser):
+    """Пользователь системы: может быть обычным пользователем, гидом, менеджером или администратором."""
     GENDER_CHOICES = (
         ('Мужской', 'Мужской'),
         ('Женский', 'Женский'),
@@ -46,10 +50,12 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
 
     def __str__(self):
+        """Строковое представление пользователя с ролью."""
         return f"{self.username} ({self.role})"
 
 # лаба 1: Демонстрация использования сеансов Django
 class Guide(models.Model):
+    """Гид: расширяет пользователя, содержит опыт, языки, рейтинг и резюме."""
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name='Пользователь', related_name='guide_profile')
     experience = models.IntegerField(verbose_name='Опыт работы (лет)')
     languages = models.CharField(max_length=200, verbose_name='Знание языков')
@@ -66,16 +72,18 @@ class Guide(models.Model):
         verbose_name_plural = 'Гиды'
 
     def __str__(self):
+        """Строковое представление гида с опытом работы."""
         return f"{self.user.username} - {self.experience} лет опыта"
 
-    # лаба 1: Метод для отображения файла в админке
     def get_resume_url(self):
+        """Возвращает URL резюме, если оно загружено."""
         if self.resume:
             return self.resume.url
         return None
 
 # лаба 1: Демонстрация использования сеансов Django
 class Location(models.Model):
+    """Локация: место проведения тура или аренды."""
     name = models.CharField(max_length=100, verbose_name='Название')
     address = models.TextField(verbose_name='Адрес')
     latitude = models.FloatField(verbose_name='Широта')
@@ -86,10 +94,12 @@ class Location(models.Model):
         verbose_name_plural = 'Локации'
 
     def __str__(self):
+        """Строковое представление локации (название)."""
         return self.name
 
 # лаба 1: Демонстрация использования сеансов Django
 class BikeStatus(models.Model):
+    """Статус велосипеда (например, доступен, на ремонте)."""
     status_name = models.CharField(max_length=50, verbose_name='Название статуса')
 
     class Meta:
@@ -97,10 +107,12 @@ class BikeStatus(models.Model):
         verbose_name_plural = 'Статусы велосипедов'
 
     def __str__(self):
+        """Строковое представление статуса велосипеда."""
         return self.status_name
 
 # лаба 1: Демонстрация использования сеансов Django
 class Bike(models.Model):
+    """Велосипед: тип, статус, цена, локация."""
     BIKE_TYPES = [('standard', 'Обычный'), ('electric', 'Электрический')]
     type = models.CharField(max_length=20, choices=BIKE_TYPES, verbose_name='Тип')
     status = models.ForeignKey(BikeStatus, on_delete=models.CASCADE, verbose_name='Статус', related_name='bikes')
@@ -113,17 +125,20 @@ class Bike(models.Model):
         verbose_name_plural = 'Велосипеды'
 
     def __str__(self):
+        """Строковое представление велосипеда с типом и локацией."""
         return f"{self.get_type_display()} - {self.location.name}"
 
     def save(self, *args, **kwargs):
-        if self.rental_price_hour < 0:  # Проверка цены
+        """Сохраняет велосипед, не позволяя отрицательную цену за час."""
+        if self.rental_price_hour < 0:
             self.rental_price_hour = 0
-        super().save(*args, **kwargs)  # Важно!
+        super().save(*args, **kwargs)
 
 # лаба 1: Демонстрация использования сеансов Django
 class Rental(models.Model):
+    """Аренда велосипеда пользователем."""
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь', related_name='rentals')
-    bike = models.ForeignKey(Bike, on_delete=models.CASCADE, verbose_name='Велосипед', related_name='rentals')
+    bike = models.ForeignKey(Bike, on_delete=models.CASCADE, verbose_name='Велосипед', related_name='rentals', null=True, blank=True)
     start_time = models.DateTimeField(verbose_name='Время начала')
     end_time = models.DateTimeField(verbose_name='Время окончания')
     total_price = models.FloatField(verbose_name='Общая стоимость')
@@ -133,10 +148,12 @@ class Rental(models.Model):
         verbose_name_plural = 'Аренды'
 
     def __str__(self):
+        """Строковое представление аренды: пользователь и велосипед."""
         return f"{self.user.username} - {self.bike}"
 
 # лаба 1: Демонстрация использования сеансов Django
 class Tour(models.Model):
+    """Экскурсионный тур: название, описание, длительность, цена, фото и т.д."""
     # Варианты длительности тура
     DURATION_CHOICES = [
         (1, '1 час'),
@@ -161,12 +178,12 @@ class Tour(models.Model):
     start_time = models.DateTimeField(null=True, blank=True, verbose_name='Дата и время начала экскурсии')
 
     def __str__(self):
-        # Получаем человекочитаемое значение для длительности
+        """Строковое представление тура с длительностью."""
         duration_display = dict(self.DURATION_CHOICES).get(self.duration, f"{self.duration} ч.")
         return f"{self.name} ({duration_display})"
 
     def get_age(self):
-        """Возвращает возраст тура в днях с момента создания"""
+        """Возвращает возраст тура в днях с момента создания."""
         if self.created_at:
             now = timezone.now()
             age = now - self.created_at
@@ -174,44 +191,28 @@ class Tour(models.Model):
         return 0
 
     def was_recently_updated(self):
-        """Проверяет, был ли тур обновлен за последний час"""
+        """Проверяет, был ли тур обновлен за последний час."""
         now = timezone.now()
         return self.updated_at >= now - timezone.timedelta(hours=1)
 
     def is_highly_rated(self):
-        """Проверяет, имеет ли тур высокий рейтинг (средний рейтинг >= 4.5)"""
+        """Проверяет, имеет ли тур высокий рейтинг (средний рейтинг >= 4.5)."""
         avg_rating = self.reviews.aggregate(Avg('rating'))['rating__avg']
-        # Если нет отзывов, возвращаем False
         if avg_rating is None:
             return False
         return avg_rating >= 4.5
 
     def get_next_tours(self, count=3):
-        """Возвращает следующие туры по дате создания"""
+        """Возвращает следующие туры по дате создания."""
         return Tour.objects.filter(created_at__gt=self.created_at).order_by('created_at')[:count]
 
     def get_prev_tours(self, count=3):
-        """Возвращает предыдущие туры по дате создания"""
+        """Возвращает предыдущие туры по дате создания."""
         return Tour.objects.filter(created_at__lt=self.created_at).order_by('-created_at')[:count]
 
     def save(self, *args, **kwargs):
-        # Очищаем название от лишних пробелов
+        """Сохраняет тур, очищая название от лишних пробелов."""
         self.name = self.name.strip()
-        
-        # Очищаем описание от лишних пробелов
-        self.description = self.description.strip()
-        
-        # Очищаем местоположение от лишних пробелов
-        self.location = self.location.strip()
-        
-        # Если это создание объекта (а не обновление)
-        if not self.id:
-            self.created_at = timezone.now()
-        
-        # В любом случае обновляем дату изменения
-        self.updated_at = timezone.now()
-        
-        # Вызываем оригинальный метод save()
         super().save(*args, **kwargs)
 
     class Meta:
@@ -283,6 +284,7 @@ class Payment(models.Model):
 class Slot(models.Model):
     tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name='slots', verbose_name='Тур')
     guide = models.ForeignKey(Guide, on_delete=models.CASCADE, related_name='slots', verbose_name='Гид')
+    bike = models.ForeignKey(Bike, on_delete=models.CASCADE, related_name='slots', verbose_name='Велосипед', null=True, blank=True)
     datetime = models.DateTimeField(verbose_name='Дата и время')
     is_booked = models.BooleanField(default=False, verbose_name='Забронировано')
 

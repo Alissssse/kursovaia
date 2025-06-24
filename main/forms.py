@@ -1,8 +1,12 @@
+"""
+Формы для bike tours: регистрация, бронирование, отзывы и т.д.
+"""
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import Tour, Review, User, Booking, Guide, GuideTour, Slot, Rental, BikeStatus, Bike
 
 class TourForm(forms.ModelForm):
+    """Форма для создания или обновления тура."""
     class Meta:
         model = Tour
         fields = ['name', 'description', 'price', 'duration', 'location', 'image']
@@ -16,6 +20,7 @@ class TourForm(forms.ModelForm):
         }
 
     def clean_duration(self):
+        """Проверяет, что выбранная длительность является допустимой."""
         duration = self.cleaned_data.get('duration')
         valid_durations = [choice[0] for choice in Tour.DURATION_CHOICES]
         if duration not in valid_durations:
@@ -23,12 +28,14 @@ class TourForm(forms.ModelForm):
         return duration
 
     def clean_price(self):
+        """Проверяет, что цена не отрицательная."""
         price = self.cleaned_data.get('price')
         if price < 0:
             raise forms.ValidationError("Цена не может быть отрицательной")
         return price
 
 class ReviewForm(forms.ModelForm):
+    """Форма для создания или обновления отзыва."""
     class Meta:
         model = Review
         fields = ['rating', 'comment']
@@ -47,6 +54,7 @@ class ReviewForm(forms.ModelForm):
         }
 
 class UserProfileForm(forms.ModelForm):
+    """Форма для обновления профиля пользователя."""
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name']
@@ -58,11 +66,13 @@ class UserProfileForm(forms.ModelForm):
         }
 
 class CustomUserCreationForm(UserCreationForm):
+    """Форма для регистрации нового пользователя."""
     class Meta:
         model = User
         fields = ('username', 'email', 'password1', 'password2')
 
 class BookingForm(forms.ModelForm):
+    """Форма для бронирования тура."""
     slot = forms.ModelChoiceField(queryset=Slot.objects.none(), label='Доступные слоты', empty_label="Выберите слот", widget=forms.Select(attrs={'class': 'form-control'}))
 
     class Meta:
@@ -76,16 +86,18 @@ class BookingForm(forms.ModelForm):
             self.fields['slot'].queryset = Slot.objects.filter(tour=tour, is_booked=False).order_by('datetime')
 
 class SlotForm(forms.ModelForm):
+    """Форма для создания или обновления слота."""
     class Meta:
         model = Slot
-        fields = ['guide', 'datetime', 'is_booked']
+        fields = ['guide', 'bike', 'datetime']
         widgets = {
             'guide': forms.Select(attrs={'class': 'form-control'}),
+            'bike': forms.Select(attrs={'class': 'form-control'}),
             'datetime': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
-            'is_booked': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 class RentalForm(forms.ModelForm):
+    """Форма для создания или обновления аренды велосипеда."""
     class Meta:
         model = Rental
         fields = ['bike', 'start_time', 'end_time']

@@ -4,6 +4,9 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """
+    Миграция: добавление связи гид-тур через промежуточную таблицу.
+    """
 
     dependencies = [
         ('main', '0005_alter_tour_options_alter_tour_location_and_more'),

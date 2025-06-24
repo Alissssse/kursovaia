@@ -81,6 +81,7 @@
                                     <th>Дата</th>
                                     <th>Стоимость</th>
                                     <th>Статус</th>
+                                    <th>Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -97,6 +98,10 @@
                                             <span class="badge {% if booking.is_active %}bg-success{% else %}bg-secondary{% endif %}">
                                                 {{ booking.get_status_display }}
                                             </span>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'booking_update' booking.id %}" class="btn btn-sm btn-primary">Изменить</a>
+                                            <a href="{% url 'booking_delete' booking.id %}" class="btn btn-sm btn-danger ms-1">Удалить</a>
                                         </td>
                                     </tr>
                                 {% endfor %}

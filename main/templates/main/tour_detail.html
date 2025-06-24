@@ -48,8 +48,12 @@
                             <form method="post">
                                 {% csrf_token %}
                                 {{ booking_form.slot.label_tag }}
-                                {{ booking_form.slot }}
-                                <button type="submit" name="book_tour" class="btn btn-success mt-2">Забронировать</button>
+                                {% if booking_form.slot.field.queryset|length %}
+                                    {{ booking_form.slot }}
+                                    <button type="submit" name="book_tour" class="btn btn-success mt-2">Забронировать</button>
+                                {% else %}
+                                    <div class="alert alert-warning mt-2">Нет доступных слотов</div>
+                                {% endif %}
                             </form>
                         {% endif %}
                     {% endif %}

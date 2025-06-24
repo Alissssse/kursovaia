@@ -4,6 +4,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """Миграция для добавления поля profile_url гиду."""
 
     dependencies = [
         ('main', '0003_guide_resume_alter_guide_experience_and_more'),

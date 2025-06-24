@@ -3,6 +3,12 @@ from . import views
 from django.contrib.auth import views as auth_views
 from rest_framework.routers import DefaultRouter
 from .views import slot_create, slot_update, slot_delete, RentalCreateView
+from rest_framework import routers
+from rest_framework.schemas import get_schema_view
+from rest_framework.documentation import include_docs_urls
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from django.http import JsonResponse
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -16,6 +22,7 @@ urlpatterns = [
     path('rentals/', views.rental_list, name='rental_list'),
     path('rentals/create/', RentalCreateView.as_view(), name='rental_create'),
     path('rentals/<int:pk>/delete/', views.RentalDeleteView.as_view(), name='rental_delete'),
+    path('rentals/<int:pk>/edit/', views.RentalUpdateView.as_view(), name='rental_update'),
     path('tour-guides/', views.tour_guides_list, name='tour_guides_list'),
     path('exclude-examples/', views.exclude_examples, name='exclude_examples'),
     path('count-exists-examples/', views.count_exists_example, name='count_exists_examples'),
@@ -38,5 +45,17 @@ router.register(r'api/rentals', views.RentalViewSet)
 router.register(r'api/users', views.UserViewSet)
 
 urlpatterns += router.urls
+
+@api_view(['GET'])
+def api_root(request, format=None):
+    return Response({
+        'bikes': request.build_absolute_uri('/api/bikes/'),
+        'rentals': request.build_absolute_uri('/api/rentals/'),
+        'users': request.build_absolute_uri('/api/users/'),
+    })
+
+urlpatterns += [
+    path('api/', api_root, name='api-root'),
+]
 
 handler403 = 'main.views.permission_denied' 

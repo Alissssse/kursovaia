@@ -5,6 +5,7 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
+    """Миграция для добавления модели Slot."""
 
     dependencies = [
         ('main', '0011_tour_start_time'),

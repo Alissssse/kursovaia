@@ -1,4 +1,6 @@
-"""Основные представления приложения main."""
+"""
+Вьюхи для bike tours: отображение туров, бронирований, профилей и т.д.
+"""
 
 import datetime
 from datetime import timedelta
@@ -96,6 +98,10 @@ def rental_list(request):
     user_search = request.GET.get('user_search', '').strip()
     bike_search = request.GET.get('bike_search', '').strip()
 
+    # Фильтрация по пользователю
+    if not request.user.is_superuser and getattr(request.user, 'role', None) != 'Менеджер':
+        rentals = rentals.filter(user=request.user)
+
     if user_search:
         rentals = rentals.filter(user__username__icontains=user_search)
     if bike_search:
@@ -109,11 +115,10 @@ def rental_list(request):
         if rentals_qs.exists():
             rentals = rentals_qs
         else:
-            # Если ORM не нашёл, фильтруем на Python по строковому представлению
             rentals = [r for r in rentals if bike_search.lower() in str(r.bike).lower()]
 
     # Пагинация
-    paginator = Paginator(rentals, 10)  # 10 аренд на страницу
+    paginator = Paginator(rentals, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -158,8 +163,7 @@ class TourListView(ListView):
         # Применяем фильтры
         if search:
             queryset = queryset.filter(
-                Q(name__icontains=search) | 
-                Q(description__icontains=search)
+                Q(name__icontains=search)
             )
         
         if location:
@@ -447,7 +451,7 @@ def exclude_examples(request):
     
     # 1. Базовый exclude с одним условием
     # Туры не из Москвы
-    non_moscow_tours = Tour.objects.exclude(location__icontains='Москва')[:3]
+    non_moscow_tours =Tour.objects.exclude(location__icontains='Москва')[:3]
     
     # 2. Exclude с несколькими условиями (цепочка вызовов)
     # Туры не из Москвы и не из Санкт-Петербурга
@@ -537,7 +541,7 @@ def tour_detail(request, tour_id):
     price_similar_tours = Tour.objects.filter(
         price__range=(price_range_min, price_range_max)
     ).exclude(duration=tour.duration).distinct()[:3]
-
+    
     booking_form = None
     booking_success = False
     booking_error = None
@@ -551,6 +555,14 @@ def tour_detail(request, tour_id):
                     booking_error = 'Этот слот уже занят. Пожалуйста, выберите другой.'
                 else:
                     Booking.objects.create(user=request.user, tour=tour, date=slot.datetime, total_price=float(tour.price))
+                    # Создаём Rental для пользователя по бронированию тура
+                    Rental.objects.create(
+                        user=request.user,
+                        bike=slot.bike if hasattr(slot, 'bike') else None,
+                        start_time=slot.datetime,
+                        end_time=slot.datetime + timedelta(hours=tour.duration),
+                        total_price=float(tour.price)
+                    )
                     slot.is_booked = True
                     slot.save()
                     booking_success = True
@@ -678,7 +690,7 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['role', 'gender']
     search_fields = ['username', 'email']
-    ordering_fields = ['username', 'email']
+    ordering_fields = ['username', 'email'] 
 
 @login_required
 def slot_create(request, tour_id):
@@ -738,11 +750,33 @@ class RentalCreateView(LoginRequiredMixin, ManagerRequiredMixin, CreateView):
         messages.success(self.request, 'Аренда успешно создана!')
         return redirect(self.success_url)
 
-class RentalDeleteView(LoginRequiredMixin, ManagerRequiredMixin, DeleteView):
+class RentalDeleteView(LoginRequiredMixin, DeleteView):
     model = Rental
     template_name = 'main/rental_confirm_delete.html'
     success_url = reverse_lazy('rental_list')
 
+    def dispatch(self, request, *args, **kwargs):
+        rental = self.get_object()
+        user = request.user
+        # Разрешено, если пользователь — владелец аренды, менеджер или суперпользователь
+        if user == rental.user or user.is_superuser or user.role == 'Менеджер':
+            return super().dispatch(request, *args, **kwargs)
+        return HttpResponseForbidden('Доступ запрещён: можно удалять только свои аренды или если вы менеджер/админ.')
+
     def delete(self, request, *args, **kwargs):
         messages.success(request, 'Аренда успешно удалена!')
-        return super().delete(request, *args, **kwargs) 
+        return super().delete(request, *args, **kwargs)
+
+class RentalUpdateView(LoginRequiredMixin, ManagerRequiredMixin, UpdateView):
+    model = Rental
+    form_class = RentalForm
+    template_name = 'main/rental_form.html'
+    success_url = reverse_lazy('rental_list')
+
+    def form_valid(self, form):
+        rental = form.save(commit=False)
+        rental.user = self.request.user
+        rental.total_price = form.cleaned_data.get('total_price', rental.total_price)
+        rental.save()
+        messages.success(self.request, 'Аренда успешно обновлена!')
+        return redirect(self.success_url) 

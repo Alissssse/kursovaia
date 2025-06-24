@@ -4,6 +4,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """Миграция для добавления поля активности тура."""
 
     dependencies = [
         ('main', '0008_alter_tour_options_alter_bike_location_and_more'),

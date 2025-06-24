@@ -5,6 +5,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """Миграция для добавления дат создания и обновления тура."""
 
     dependencies = [
         ('main', '0006_guide_tours'),

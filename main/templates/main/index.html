@@ -147,7 +147,7 @@
                 <div class="guide-card">
                     <div class="card-header">Лучшие гиды</div>
                     <ul class="list-group list-group-flush">
-                        {% for guide in best_guides %}
+                            {% for guide in best_guides %}
                             <li class="list-group-item">
                                 <span class="guide-name"><a href="{% url 'tour_guides_list' %}?guide_id={{ guide.id }}" class="text-decoration-none">{{ guide.user.username }}</a></span>
                                 <span class="guide-rating">&#11088; {{ guide.rating }}</span>
@@ -158,7 +158,7 @@
                             <li class="list-group-item text-muted">Нет доступных гидов</li>
                         {% endfor %}
                     </ul>
-                </div>
+                                </div>
                 {% if user.is_authenticated and user.is_superuser %}
                 <!-- Последние бронирования -->
                 <div class="booking-card">
@@ -171,9 +171,9 @@
                                 <span class="booking-date">&#128197; {{ booking.date|date:'d.m.Y H:i' }}</span>
                                 <span class="booking-price">&#8381; {{ booking.total_price }} руб.</span>
                             </li>
-                        {% empty %}
+                            {% empty %}
                             <li class="list-group-item text-muted">Нет последних бронирований</li>
-                        {% endfor %}
+                            {% endfor %}
                     </ul>
                 </div>
                 {% elif user.is_authenticated and user.groups.all.0.name == 'Managers' %}
@@ -181,16 +181,16 @@
                 <div class="booking-card">
                     <div class="card-header">Последние бронирования</div>
                     <ul class="list-group list-group-flush">
-                        {% for booking in latest_bookings %}
+                            {% for booking in latest_bookings %}
                             <li class="list-group-item">
                                 <span class="booking-title"><a href="{% url 'tour_detail' booking.tour.id %}" class="text-decoration-none">{{ booking.tour.name }}</a></span>
                                 <span class="booking-user">&#128100; {{ booking.user.username }}</span>
                                 <span class="booking-date">&#128197; {{ booking.date|date:'d.m.Y H:i' }}</span>
                                 <span class="booking-price">&#8381; {{ booking.total_price }} руб.</span>
                             </li>
-                        {% empty %}
+                            {% empty %}
                             <li class="list-group-item text-muted">Нет последних бронирований</li>
-                        {% endfor %}
+                            {% endfor %}
                     </ul>
                 </div>
                 {% endif %}

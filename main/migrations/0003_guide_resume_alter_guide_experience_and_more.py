@@ -4,6 +4,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """Миграция для добавления резюме гиду и изменения опыта."""
 
     dependencies = [
         ('main', '0002_user_avatar_alter_bike_location_and_more'),

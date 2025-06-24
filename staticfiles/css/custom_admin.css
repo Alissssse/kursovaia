@@ -1,0 +1,38 @@
+/* Стили для полей формы */
+.field-price input {
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    padding: 5px 10px;
+}
+
+.field-duration select {
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    padding: 5px 10px;
+}
+
+/* Стили для превью изображения */
+.field-image img {
+    max-width: 200px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Стили для заголовков в админке */
+.module h2 {
+    background: #007bff;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Стили для кнопок */
+.submit-row input[type="submit"] {
+    background: #28a745;
+    border-color: #28a745;
+}
+
+.submit-row input[type="submit"]:hover {
+    background: #218838;
+    border-color: #1e7e34;
+} 

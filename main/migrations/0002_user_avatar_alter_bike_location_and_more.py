@@ -6,6 +6,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """Миграция для добавления аватара и изменения локации велосипеда."""
 
     dependencies = [
         ('main', '0001_initial'),

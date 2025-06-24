@@ -4,6 +4,9 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+    """
+    Миграция: изменение поля role у пользователя.
+    """
 
     dependencies = [
         ('main', '0012_slot'),
